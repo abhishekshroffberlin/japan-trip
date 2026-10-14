@@ -733,9 +733,10 @@ function nextUpHtml(){
 function refreshNextUp(){const el=$('#nextup');if(el)el.innerHTML=nextUpHtml();}
 
 /* ---- Tools: currency converter + show-the-staff cards ---- */
-const RATE_DEFAULT={eur:177,inr:1.66}; /* yen per €1 and per ₹1, mid-market on 14 Oct 2026 */
+const RATE_DEFAULT={eur:177,usd:158.4,inr:1.66}; /* yen per €1, $1 and ₹1, mid-market on 14 Oct 2026 */
+const qrow=y=>`<tr><td>¥${fmt(y,0)}</td><td>€${fmt(y/RATE.eur,2)}</td><td>$${fmt(y/RATE.usd,2)}</td><td>₹${fmt(y/RATE.inr,0)}</td></tr>`;
 let RATE={...RATE_DEFAULT};
-try{const r=JSON.parse(localStorage.getItem('rates')||'null');if(r&&r.eur>0&&r.inr>0)RATE=r;}catch(e){}
+try{const r=JSON.parse(localStorage.getItem('rates')||'null');if(r&&r.eur>0&&r.inr>0)RATE={...RATE_DEFAULT,...r};}catch(e){}
 const fmt=(n,dp)=>isFinite(n)?n.toLocaleString('en-GB',{maximumFractionDigits:dp,minimumFractionDigits:0}):'';
 const CARDS=[
   ['私たちはベジタリアンです。肉と魚は食べません。','We are vegetarian. We don\'t eat meat or fish.'],
@@ -763,11 +764,12 @@ function renderTools(){
     <div class="conv">
       <label for="cv-jpy"><span>¥</span><input id="cv-jpy" inputmode="decimal" autocomplete="off" placeholder="Yen" data-cur="jpy"></label>
       <label for="cv-eur"><span>€</span><input id="cv-eur" inputmode="decimal" autocomplete="off" placeholder="Euro" data-cur="eur"></label>
+      <label for="cv-usd"><span>$</span><input id="cv-usd" inputmode="decimal" autocomplete="off" placeholder="US dollars" data-cur="usd"></label>
       <label for="cv-inr"><span>₹</span><input id="cv-inr" inputmode="decimal" autocomplete="off" placeholder="Rupees" data-cur="inr"></label>
     </div>
-    <div class="rates"><span class="small">Rate:</span><label for="rt-eur">€1 = ¥<input id="rt-eur" inputmode="decimal" value="${RATE.eur}"></label><label for="rt-inr">₹1 = ¥<input id="rt-inr" inputmode="decimal" value="${RATE.inr}"></label></div>
+    <div class="rates"><span class="small">Rate:</span><label for="rt-eur">€1 = ¥<input id="rt-eur" inputmode="decimal" value="${RATE.eur}"></label><label for="rt-usd">$1 = ¥<input id="rt-usd" inputmode="decimal" value="${RATE.usd}"></label><label for="rt-inr">₹1 = ¥<input id="rt-inr" inputmode="decimal" value="${RATE.inr}"></label></div>
     <p class="small">Mid-market rate on 14 Oct 2026. Card and ATM rates are usually 1–3% worse. Change the rate if it moves; your phone remembers it.</p>
-    <table class="qtab" id="qtab"><thead><tr><th>Yen</th><th>Euro</th><th>Rupees</th></tr></thead><tbody>${quick.map(y=>`<tr><td>¥${fmt(y,0)}</td><td>€${fmt(y/RATE.eur,2)}</td><td>₹${fmt(y/RATE.inr,0)}</td></tr>`).join('')}</tbody></table>
+    <table class="qtab" id="qtab"><thead><tr><th>Yen</th><th>Euro</th><th>Dollars</th><th>Rupees</th></tr></thead><tbody>${quick.map(qrow).join('')}</tbody></table>
   </section>
   <section class="sec"><h2>Show-the-staff cards</h2><p class="small" style="margin-top:0">Tap a card to show it full screen.</p>
     <div class="cards">${CARDS.map((c,i)=>`<button class="cardbtn" type="button" data-card="${i}"><span class="jp" lang="ja">${esc(c[0])}</span><span class="en">${esc(c[1])}</span></button>`).join('')}</div>
@@ -778,9 +780,9 @@ function renderTools(){
 }
 function convert(from,val){
   const v=parseFloat(String(val).replace(/[^\d.]/g,''));
-  const yen=!isFinite(v)?NaN:from==='jpy'?v:from==='eur'?v*RATE.eur:v*RATE.inr;
-  const out={jpy:fmt(yen,0),eur:fmt(yen/RATE.eur,2),inr:fmt(yen/RATE.inr,0)};
-  ['jpy','eur','inr'].forEach(c=>{if(c!==from)$('#cv-'+c).value=isFinite(yen)?out[c]:'';});
+  const yen=!isFinite(v)?NaN:from==='jpy'?v:v*RATE[from];
+  const out={jpy:fmt(yen,0),eur:fmt(yen/RATE.eur,2),usd:fmt(yen/RATE.usd,2),inr:fmt(yen/RATE.inr,0)};
+  ['jpy','eur','usd','inr'].forEach(c=>{if(c!==from)$('#cv-'+c).value=isFinite(yen)?out[c]:'';});
 }
 function showCard(jp,sub,en){
   const o=document.createElement('div');o.className='overlay';o.setAttribute('role','dialog');o.setAttribute('aria-modal','true');
@@ -789,10 +791,10 @@ function showCard(jp,sub,en){
 }
 document.addEventListener('input',e=>{
   const c=e.target.dataset&&e.target.dataset.cur; if(c){convert(c,e.target.value);return;}
-  if(e.target.id==='rt-eur'||e.target.id==='rt-inr'){
-    const a=parseFloat($('#rt-eur').value),b=parseFloat($('#rt-inr').value);
-    if(a>0&&b>0){RATE={eur:a,inr:b};try{localStorage.setItem('rates',JSON.stringify(RATE))}catch(err){}
-      const q=[500,1000,3000,5000,10000,30000];$('#qtab tbody').innerHTML=q.map(y=>`<tr><td>¥${fmt(y,0)}</td><td>€${fmt(y/RATE.eur,2)}</td><td>₹${fmt(y/RATE.inr,0)}</td></tr>`).join('');
+  if(e.target.id==='rt-eur'||e.target.id==='rt-usd'||e.target.id==='rt-inr'){
+    const a=parseFloat($('#rt-eur').value),u=parseFloat($('#rt-usd').value),b=parseFloat($('#rt-inr').value);
+    if(a>0&&u>0&&b>0){RATE={eur:a,usd:u,inr:b};try{localStorage.setItem('rates',JSON.stringify(RATE))}catch(err){}
+      const q=[500,1000,3000,5000,10000,30000];$('#qtab tbody').innerHTML=q.map(qrow).join('');
       const j=$('#cv-jpy').value;if(j)convert('jpy',j);}
   }
 });
