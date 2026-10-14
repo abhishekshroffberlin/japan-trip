@@ -51,7 +51,7 @@ header{position:sticky;top:env(safe-area-inset-top,0px);z-index:5;background:col
 .clock b{color:var(--ink);font-weight:700}
 
 .tabs{display:flex;gap:4px;padding-block:4px 8px}
-.tabs button{flex:1;font:inherit;font-size:.84rem;font-weight:500;padding:7px 0;border:1px solid var(--line);background:var(--card);color:var(--muted);border-radius:8px;cursor:pointer}
+.tabs button{flex:1;min-width:0;font:inherit;font-size:.8rem;font-weight:500;padding:7px 0;border:1px solid var(--line);background:var(--card);color:var(--muted);border-radius:8px;cursor:pointer}
 .tabs button[aria-selected="true"]{background:var(--ink);color:var(--paper);border-color:var(--ink)}
 
 .strip{display:flex;gap:6px;overflow-x:auto;padding-block:2px 10px;scroll-snap-type:x proximity;scrollbar-width:none;margin-inline:-16px;padding-inline:16px}
@@ -129,6 +129,30 @@ details.facts[open] summary::before{content:"－ "}
 .secrow h2{margin:0}
 .toggle{font:inherit;font-size:.8rem;padding:4px 10px;border-radius:99px;border:1px solid var(--line);background:var(--card);color:var(--muted);cursor:pointer}
 .toggle[aria-pressed="true"]{border-color:var(--ok);color:var(--ok);background:color-mix(in srgb,var(--ok) 10%,var(--card))}
+.nextup{display:grid;gap:2px;background:var(--ink);color:var(--paper);border-radius:12px;padding:10px 14px;margin-bottom:14px}
+.nextup .lbl{font-size:.68rem;letter-spacing:.12em;text-transform:uppercase;opacity:.75;font-weight:700}
+.nextup .big{font-size:1.05rem;font-weight:700;line-height:1.35}
+.nextup .cd{font-variant-numeric:tabular-nums;color:color-mix(in srgb,var(--region) 55%,var(--paper));font-weight:700}
+.conv{display:grid;gap:8px}
+.conv label{display:grid;grid-template-columns:3.2rem 1fr;align-items:center;gap:10px;background:var(--card);border:1px solid var(--line);border-radius:12px;padding:6px 12px}
+.conv label span{font-weight:700;font-size:1.1rem}
+.conv input{font:inherit;font-size:1.4rem;font-variant-numeric:tabular-nums;border:0;background:transparent;color:var(--ink);width:100%;min-width:0;padding:6px 0;outline:none}
+.conv label:focus-within{border-color:var(--accent)}
+.qtab{width:100%;border-collapse:collapse;font-size:.9rem;font-variant-numeric:tabular-nums}
+.qtab td,.qtab th{padding:6px 0;border-bottom:1px solid var(--line);text-align:right}
+.qtab th{color:var(--muted);font-weight:500;font-size:.75rem;text-transform:uppercase;letter-spacing:.06em}
+.qtab td:first-child,.qtab th:first-child{text-align:left}
+.rates{display:flex;gap:8px;flex-wrap:wrap;align-items:center;font-size:.85rem;margin-top:8px}
+.rates input{font:inherit;width:5.5rem;padding:4px 8px;border:1px solid var(--line);border-radius:8px;background:var(--card);color:var(--ink)}
+.cards{display:grid;gap:8px}
+.cardbtn{text-align:left;font:inherit;background:var(--card);color:var(--ink);border:1px solid var(--line);border-radius:12px;padding:10px 14px;cursor:pointer;display:grid;gap:2px}
+.cardbtn .jp{font-size:1.05rem;font-weight:700}
+.cardbtn .en{font-size:.85rem;color:var(--muted)}
+.overlay{position:fixed;inset:0;z-index:30;background:var(--card);color:var(--ink);display:flex;flex-direction:column;justify-content:center;gap:20px;padding:calc(24px + env(safe-area-inset-top,0px)) 22px calc(24px + env(safe-area-inset-bottom,0px));overflow:auto}
+.overlay .jp{font-size:clamp(1.7rem,8vw,2.6rem);line-height:1.5;font-weight:700;text-wrap:pretty}
+.overlay .sub{white-space:pre-line;font-size:clamp(1.2rem,5.5vw,1.6rem);line-height:1.5}
+.overlay .en{font-size:1rem;color:var(--muted)}
+.overlay .close{position:absolute;top:calc(12px + env(safe-area-inset-top,0px));right:14px}
 .pager{display:flex;justify-content:space-between;gap:8px;margin-top:26px}
 .pager button{flex:1;min-width:0;text-align:left}
 .pager button:last-child{text-align:right;justify-content:flex-end}
@@ -168,6 +192,7 @@ details.facts[open] summary::before{content:"－ "}
       <button role="tab" id="tab-day" aria-selected="true" data-view="day">Day by day</button>
       <button role="tab" id="tab-stays" aria-selected="false" data-view="stays">Stays</button>
       <button role="tab" id="tab-weather" aria-selected="false" data-view="weather">Weather</button>
+      <button role="tab" id="tab-tools" aria-selected="false" data-view="tools">Tools</button>
       <button role="tab" id="tab-help" aria-selected="false" data-view="help">Help</button>
     </div>
     <nav class="strip" id="strip" aria-label="Pick a day"></nav>
@@ -614,6 +639,7 @@ function renderDay(){
   const L=LUNCH[key(d)]||[];
   const lunchHtml=L.filter(x=>!vegOnly||x[4]).map(([nm,q,w,n,v])=>`<div class="lc"><div class="h"><div class="nm">${esc(nm)}${v===2?'<span class="veg full">Vegetarian</span>':v===1?'<span class="veg">Veg options</span>':''}</div><a href="${maps(q)}" target="_blank" rel="noopener">Map ↗</a></div><div class="w">${esc(w)}</div><div class="n">${esc(n)}</div></div>`).join('');
   const prev=DAYS[cur-1], next=DAYS[cur+1];
+  if(cur===tIdx)banner+=`<div id="nextup">${nextUpHtml()}</div>`;
   $('#main').innerHTML=`${banner}
   <div class="dayhead">
     <div class="eyebrow">${REG[d.region]}<span class="n">Day ${cur+1} of 16${cur===tIdx?' · today':''}</span></div>
@@ -668,6 +694,88 @@ const WX={
 };
 const DAYWX={oct17:'tokyo',oct18:'tokyo',oct19:'furano',oct20:'furano',oct21:'sapporo',oct22:'kyoto',oct23:'kyoto',oct24:'kyoto',oct25:'kyoto',oct26:'nikko',oct27:'yumoto',oct28:'tokyo',oct29:'tokyo',oct30:'tokyo',oct31:'tokyo',nov1:'tokyo'};
 const live=q=>'https://www.google.com/search?q='+encodeURIComponent(q);
+
+
+/* ---- Next up: first timed item of today's plan that hasn't happened yet ---- */
+function nowJSTmin(){const p=new Intl.DateTimeFormat('en-GB',{timeZone:'Asia/Tokyo',hour:'2-digit',minute:'2-digit',hourCycle:'h23'}).format(new Date()).split(':');return +p[0]*60+ +p[1];}
+function nextUpHtml(){
+  if(tIdx<0)return '';
+  const d=DAYS[tIdx], P=PLAN[key(d)];
+  const now=nowJSTmin();
+  const timed=P.items.map(it=>{const m=String(it[0]).match(/(\d{1,2}):(\d{2})/);return m&&!/\bBER\b|Bengaluru →/.test(it[1])?{min:+m[1]*60+ +m[2],it}:null}).filter(Boolean);
+  const nx=timed.find(x=>x.min>=now);
+  if(!nx){const st=d.stay?STAYS[d.stay].name:'the airport';return `<div class="nextup"><span class="lbl">Rest of today</span><span class="big">Nothing else timed. Tonight: ${esc(st)}</span></div>`;}
+  const diff=nx.min-now, h=Math.floor(diff/60), m=diff%60;
+  const cd=diff<1?'now':`in ${h?h+' h ':''}${m} min`;
+  return `<div class="nextup"><span class="lbl">Next up · <span class="cd">${cd}</span></span><span class="big">${esc(nx.it[0])} · ${esc(nx.it[1])}</span></div>`;
+}
+function refreshNextUp(){const el=$('#nextup');if(el)el.innerHTML=nextUpHtml();}
+
+/* ---- Tools: currency converter + show-the-staff cards ---- */
+const RATE_DEFAULT={eur:177,inr:1.66}; /* yen per €1 and per ₹1, mid-market on 14 Oct 2026 */
+let RATE={...RATE_DEFAULT};
+try{const r=JSON.parse(localStorage.getItem('rates')||'null');if(r&&r.eur>0&&r.inr>0)RATE=r;}catch(e){}
+const fmt=(n,dp)=>isFinite(n)?n.toLocaleString('en-GB',{maximumFractionDigits:dp,minimumFractionDigits:0}):'';
+const CARDS=[
+  ['私たちはベジタリアンです。肉と魚は食べません。','We are vegetarian. We don\'t eat meat or fish.'],
+  ['肉・魚・だし（かつお・煮干し）を使っていない料理はありますか？','Do you have dishes without meat, fish or fish stock (bonito, sardine)?'],
+  ['卵も食べられません。','We can\'t eat eggs either.'],
+  ['卵と乳製品は大丈夫です。','Eggs and dairy are fine.'],
+  ['6人と荷物が乗れる大きいタクシーをお願いします。','A large taxi for 6 people with luggage, please.'],
+  ['エレベーターはどこですか？','Where is the lift?'],
+  ['トイレはどこですか？','Where is the toilet?'],
+  ['高齢の家族がいます。座れる場所はありますか？','We have elderly family members. Is there somewhere to sit?'],
+  ['荷物を預かっていただけますか？','Could you keep our luggage for a while?'],
+  ['お子様メニューはありますか？','Do you have a children\'s menu?'],
+  ['お会計をお願いします。カードは使えますか？','The bill, please. Can we pay by card?'],
+  ['写真を撮っていただけますか？','Could you take our photo?'],
+  ['具合が悪いです。病院に連れて行ってください。','Someone is unwell. Please take us to a hospital. (Ambulance: 119)']
+];
+function renderTools(){
+  document.documentElement.style.setProperty('--region','var(--accent)');
+  const order=['toyoko','sasameyuki','mystays','daiwa','hoden','kyukamura','mimaru'];
+  const tonight=tIdx>=0&&DAYS[tIdx].stay?DAYS[tIdx].stay:null;
+  const hotelIds=tonight?[tonight,...order.filter(i=>i!==tonight)]:order;
+  const quick=[500,1000,3000,5000,10000,30000];
+  $('#main').innerHTML=`<div class="dayhead"><div class="eyebrow">Tools</div><h1>Money &amp; show-the-staff cards</h1></div>
+  <section class="sec"><h2>Currency converter</h2>
+    <div class="conv">
+      <label for="cv-jpy"><span>¥</span><input id="cv-jpy" inputmode="decimal" autocomplete="off" placeholder="Yen" data-cur="jpy"></label>
+      <label for="cv-eur"><span>€</span><input id="cv-eur" inputmode="decimal" autocomplete="off" placeholder="Euro" data-cur="eur"></label>
+      <label for="cv-inr"><span>₹</span><input id="cv-inr" inputmode="decimal" autocomplete="off" placeholder="Rupees" data-cur="inr"></label>
+    </div>
+    <div class="rates"><span class="small">Rate:</span><label for="rt-eur">€1 = ¥<input id="rt-eur" inputmode="decimal" value="${RATE.eur}"></label><label for="rt-inr">₹1 = ¥<input id="rt-inr" inputmode="decimal" value="${RATE.inr}"></label></div>
+    <p class="small">Mid-market rate on 14 Oct 2026. Card and ATM rates are usually 1–3% worse. Change the rate if it moves; your phone remembers it.</p>
+    <table class="qtab" id="qtab"><thead><tr><th>Yen</th><th>Euro</th><th>Rupees</th></tr></thead><tbody>${quick.map(y=>`<tr><td>¥${fmt(y,0)}</td><td>€${fmt(y/RATE.eur,2)}</td><td>₹${fmt(y/RATE.inr,0)}</td></tr>`).join('')}</tbody></table>
+  </section>
+  <section class="sec"><h2>Show-the-staff cards</h2><p class="small" style="margin-top:0">Tap a card to show it full screen.</p>
+    <div class="cards">${CARDS.map((c,i)=>`<button class="cardbtn" type="button" data-card="${i}"><span class="jp" lang="ja">${esc(c[0])}</span><span class="en">${esc(c[1])}</span></button>`).join('')}</div>
+  </section>
+  <section class="sec"><h2>Take us to the hotel</h2>
+    <div class="cards">${hotelIds.map(id=>{const h=STAYS[id];return `<button class="cardbtn" type="button" data-hotel="${id}"><span class="jp" lang="ja">${esc(h.jp)}</span><span class="en">${id===tonight?'<b>Tonight:</b> ':''}${esc(h.name)} · ${h.dates}</span></button>`}).join('')}</div>
+  </section>`;
+}
+function convert(from,val){
+  const v=parseFloat(String(val).replace(/[^\d.]/g,''));
+  const yen=!isFinite(v)?NaN:from==='jpy'?v:from==='eur'?v*RATE.eur:v*RATE.inr;
+  const out={jpy:fmt(yen,0),eur:fmt(yen/RATE.eur,2),inr:fmt(yen/RATE.inr,0)};
+  ['jpy','eur','inr'].forEach(c=>{if(c!==from)$('#cv-'+c).value=isFinite(yen)?out[c]:'';});
+}
+function showCard(jp,sub,en){
+  const o=document.createElement('div');o.className='overlay';o.setAttribute('role','dialog');o.setAttribute('aria-modal','true');
+  o.innerHTML=`<button class="btn close" type="button" data-close>Close</button><div class="jp" lang="ja">${esc(jp)}</div>${sub?`<div class="sub" lang="ja">${esc(sub)}</div>`:''}<div class="en">${esc(en)}</div>`;
+  document.body.appendChild(o);o.querySelector('[data-close]').focus();
+}
+document.addEventListener('input',e=>{
+  const c=e.target.dataset&&e.target.dataset.cur; if(c){convert(c,e.target.value);return;}
+  if(e.target.id==='rt-eur'||e.target.id==='rt-inr'){
+    const a=parseFloat($('#rt-eur').value),b=parseFloat($('#rt-inr').value);
+    if(a>0&&b>0){RATE={eur:a,inr:b};try{localStorage.setItem('rates',JSON.stringify(RATE))}catch(err){}
+      const q=[500,1000,3000,5000,10000,30000];$('#qtab tbody').innerHTML=q.map(y=>`<tr><td>¥${fmt(y,0)}</td><td>€${fmt(y/RATE.eur,2)}</td><td>₹${fmt(y/RATE.inr,0)}</td></tr>`).join('');
+      const j=$('#cv-jpy').value;if(j)convert('jpy',j);}
+  }
+});
+document.addEventListener('keydown',e=>{if(e.key==='Escape'){const o=document.querySelector('.overlay');if(o)o.remove();}});
 
 function renderWeather(){
   document.documentElement.style.setProperty('--region','var(--accent)');
@@ -728,7 +836,7 @@ function renderStrip(){
 function render(scroll){
   document.querySelectorAll('.tabs button').forEach(b=>b.setAttribute('aria-selected',b.dataset.view===view));
   renderStrip();
-  if(view==='day')renderDay(); else if(view==='stays')renderStays(); else if(view==='weather')renderWeather(); else renderHelp();
+  if(view==='day')renderDay(); else if(view==='stays')renderStays(); else if(view==='weather')renderWeather(); else if(view==='tools')renderTools(); else renderHelp();
   if(view==='day'){const c=document.querySelector('.chip[aria-pressed="true"]'); if(c)c.scrollIntoView({inline:'center',block:'nearest'});}
   if(scroll)window.scrollTo({top:0});
 }
@@ -740,6 +848,9 @@ document.addEventListener('click',e=>{
   const go=e.target.closest('[data-go]'); if(go){cur=+go.dataset.go;view='day';render(true);return;}
   const tab=e.target.closest('[data-view]'); if(tab){view=tab.dataset.view;render(true);return;}
   if(e.target.closest('#vegtoggle')){vegOnly=!vegOnly;try{localStorage.setItem('vegOnly',vegOnly?'1':'0')}catch(err){};renderDay();return;}
+  if(e.target.closest('[data-close]')){e.target.closest('.overlay').remove();return;}
+  const cb=e.target.closest('[data-card]');if(cb){const c=CARDS[+cb.dataset.card];showCard(c[0],'',c[1]);return;}
+  const hb=e.target.closest('[data-hotel]');if(hb){const h=STAYS[hb.dataset.hotel];showCard('このホテルまでお願いします。',h.jp+'\n'+h.name,'Please take us to this hotel. '+h.addr+' · Tel '+h.tel);return;}
   const cp=e.target.closest('[data-copy]'); if(cp){
     const txt=cp.dataset.copy;
     (navigator.clipboard?navigator.clipboard.writeText(txt):Promise.reject()).then(()=>toast('Address copied. Show it to the driver.'),()=>toast(txt));
@@ -750,11 +861,11 @@ document.addEventListener('click',e=>{
 (function init(){
   const h=location.hash.slice(1);
   const hi=DAYS.findIndex(d=>key(d)===h);
-  if(h==='stays'||h==='help'||h==='weather')view=h;
+  if(h==='stays'||h==='help'||h==='weather'||h==='tools')view=h;
   if(hi>=0)cur=hi;
   else if(tIdx>=0)cur=tIdx;
   else cur=japanDate()>'2026-11-01'?DAYS.length-1:0;
-  tick();setInterval(tick,30000);
+  tick();setInterval(()=>{tick();refreshNextUp();},30000);
   render(false);
 })();
 </script>
