@@ -1,0 +1,765 @@
+<!doctype html>
+<html lang="en"><head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Japan 2026">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="theme-color" content="#f5f6f3" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#12151c" media="(prefers-color-scheme: dark)">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
+<style>:root{color-scheme:light;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}body{margin:0;font:14px system-ui,-apple-system,sans-serif}img{max-width:100%}[hidden]{display:none!important}</style>
+<title>Japan Trip Companion</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Shippori+Mincho:wght@600;800&family=Zen+Kaku+Gothic+New:wght@400;500;700&display=swap">
+<style>
+/* Layout: one narrow column like a pocket guide. Sticky header with a scrolling date strip; each day is a timeline, then tonight's stay. Region colour tints the day. */
+:root{
+  --paper:#f5f6f3; --card:#ffffff; --ink:#1d2433; --muted:#5d6577; --line:#dde0e4;
+  --accent:#2c3e75;           /* ai-iro indigo */
+  --narita:#4f6077; --hokkaido:#2f6b4f; --kyoto:#b0372c; --nikko:#a8761a; --tokyo:#2c3e75;
+  --ok:#2f6b4f; --plan:#4f6077; --flex:#7a6a9a; --todo:#b0372c;
+  --tint:color-mix(in srgb,var(--region) 9%,var(--card));
+  --region:var(--accent);
+  --display:"Shippori Mincho","Hiragino Mincho ProN","Yu Mincho",Georgia,serif;
+  --body:"Zen Kaku Gothic New","Hiragino Sans","Yu Gothic",system-ui,-apple-system,sans-serif;
+  color-scheme:light;
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
+  --paper:#12151c; --card:#1b1f29; --ink:#e7e9ee; --muted:#9aa1b2; --line:#2c3240;
+  --accent:#8fa3e0; --narita:#9aabc4; --hokkaido:#6fb892; --kyoto:#e8796d; --nikko:#e0ad4f; --tokyo:#8fa3e0;
+  --ok:#6fb892; --plan:#9aabc4; --flex:#b5a6d6; --todo:#e8796d; color-scheme:dark;}}
+:root[data-theme="dark"]{
+  --paper:#12151c; --card:#1b1f29; --ink:#e7e9ee; --muted:#9aa1b2; --line:#2c3240;
+  --accent:#8fa3e0; --narita:#9aabc4; --hokkaido:#6fb892; --kyoto:#e8796d; --nikko:#e0ad4f; --tokyo:#8fa3e0;
+  --ok:#6fb892; --plan:#9aabc4; --flex:#b5a6d6; --todo:#e8796d; color-scheme:dark;}
+
+*{box-sizing:border-box}
+[hidden]{display:none!important}
+body{background:var(--paper);color:var(--ink);font-family:var(--body);font-size:16px;line-height:1.55;-webkit-text-size-adjust:100%}
+a{color:var(--region)}
+.wrap{max-width:560px;margin:0 auto;padding-inline:16px}
+
+header{position:sticky;top:env(safe-area-inset-top,0px);z-index:5;background:color-mix(in srgb,var(--paper) 92%,transparent);backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);border-bottom:1px solid var(--line)}
+.top{display:flex;align-items:baseline;justify-content:space-between;gap:12px;padding-block:12px 6px}
+.brand{font-family:var(--display);font-weight:800;font-size:1.15rem;letter-spacing:.01em;white-space:nowrap}
+.brand span{color:var(--muted);font-weight:600;font-size:.85rem;margin-left:6px}
+.clock{font-size:.78rem;color:var(--muted);text-align:right;font-variant-numeric:tabular-nums;white-space:nowrap}
+.clock b{color:var(--ink);font-weight:700}
+
+.tabs{display:flex;gap:4px;padding-block:4px 8px}
+.tabs button{flex:1;font:inherit;font-size:.84rem;font-weight:500;padding:7px 0;border:1px solid var(--line);background:var(--card);color:var(--muted);border-radius:8px;cursor:pointer}
+.tabs button[aria-selected="true"]{background:var(--ink);color:var(--paper);border-color:var(--ink)}
+
+.strip{display:flex;gap:6px;overflow-x:auto;padding-block:2px 10px;scroll-snap-type:x proximity;scrollbar-width:none;margin-inline:-16px;padding-inline:16px}
+.strip::-webkit-scrollbar{display:none}
+.chip{flex:0 0 auto;scroll-snap-align:center;width:48px;padding:5px 0 6px;border-radius:10px;border:1px solid var(--line);background:var(--card);color:var(--ink);font:inherit;cursor:pointer;display:grid;justify-items:center;line-height:1.15;position:relative}
+.chip .dw{font-size:.66rem;color:var(--muted);text-transform:uppercase;letter-spacing:.06em}
+.chip .dn{font-size:1.05rem;font-weight:700;font-variant-numeric:tabular-nums}
+.chip .bar{width:18px;height:3px;border-radius:2px;background:var(--c);margin-top:3px}
+.chip[aria-pressed="true"]{background:var(--c);border-color:var(--c);color:var(--card)}
+.chip[aria-pressed="true"] .dw{color:inherit;opacity:.85}
+.chip[aria-pressed="true"] .bar{background:var(--card)}
+.chip.today::after{content:"";position:absolute;top:-3px;right:-3px;width:9px;height:9px;border-radius:50%;background:var(--todo);border:2px solid var(--paper)}
+button:focus-visible,a:focus-visible,summary:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+
+main{padding-block:16px 48px}
+.banner{font-size:.85rem;color:var(--muted);margin:0 0 12px}
+.banner b{color:var(--ink)}
+
+.dayhead{display:grid;gap:4px;margin-bottom:14px}
+.eyebrow{font-size:.72rem;letter-spacing:.12em;text-transform:uppercase;color:var(--region);font-weight:700;display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+.eyebrow .n{color:var(--muted);font-weight:500}
+h1{font-family:var(--display);font-weight:800;font-size:1.7rem;line-height:1.2;margin:0;text-wrap:balance}
+.meta{font-size:.85rem;color:var(--muted);display:flex;gap:6px 14px;flex-wrap:wrap}
+.intro{margin:6px 0 0;color:var(--ink)}
+
+.sec{margin-top:22px}
+.sec h2{font-size:.72rem;letter-spacing:.12em;text-transform:uppercase;color:var(--muted);font-weight:700;margin:0 0 8px}
+
+.tl{list-style:none;margin:0;padding:0;border-left:2px solid color-mix(in srgb,var(--region) 35%,var(--line));margin-left:6px}
+.tl li{position:relative;padding:0 0 14px 18px;display:grid;gap:2px}
+.tl li::before{content:"";position:absolute;left:-7px;top:6px;width:12px;height:12px;border-radius:50%;background:var(--paper);border:2px solid var(--region)}
+.tl .when{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+.tl .t{font-weight:700;font-variant-numeric:tabular-nums;font-size:.95rem}
+.tl .what{min-width:0}
+.tl .what a{font-size:.85rem;white-space:nowrap}
+.pill{font-size:.64rem;font-weight:700;letter-spacing:.06em;text-transform:uppercase;padding:1px 7px;border-radius:99px;border:1px solid currentColor}
+.pill.ok{color:var(--ok)} .pill.plan{color:var(--plan)} .pill.flex{color:var(--flex)} .pill.todo{color:var(--todo);background:color-mix(in srgb,var(--todo) 10%,transparent)}
+
+.note{background:var(--tint);border-radius:10px;padding:12px 14px;font-size:.92rem}
+.note b{display:block;font-size:.7rem;letter-spacing:.1em;text-transform:uppercase;color:var(--region);margin-bottom:2px}
+
+.stay{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:14px;display:grid;gap:8px}
+.stay .nm{font-weight:700;font-size:1.02rem;line-height:1.3}
+.stay .jp{color:var(--muted);font-size:.85rem}
+.kv{display:grid;grid-template-columns:auto 1fr;gap:3px 12px;font-size:.88rem}
+.kv dt{color:var(--muted)} .kv dd{margin:0;min-width:0}
+.actions{display:flex;gap:8px;flex-wrap:wrap}
+.btn{display:inline-flex;align-items:center;gap:6px;font:inherit;font-size:.85rem;font-weight:500;padding:7px 12px;border-radius:8px;border:1px solid var(--line);background:var(--paper);color:var(--ink);text-decoration:none;cursor:pointer}
+.btn.primary{background:var(--region);border-color:var(--region);color:var(--card)}
+.btn svg{width:15px;height:15px;flex:none}
+
+details.facts{border-top:1px solid var(--line);padding-top:10px}
+details.facts summary{cursor:pointer;font-weight:700;font-size:.9rem;color:var(--region);list-style:none}
+details.facts summary::-webkit-details-marker{display:none}
+details.facts summary::before{content:"＋ "}
+details.facts[open] summary::before{content:"－ "}
+.facts dl{margin:10px 0 0;display:grid;gap:10px}
+.facts dt{font-weight:700;font-size:.85rem}
+.facts dd{margin:0;font-size:.9rem;color:var(--muted)}
+
+.leg{font-size:.8rem;color:var(--muted);display:flex;gap:6px 10px;flex-wrap:wrap;align-items:baseline}
+.leg a{white-space:nowrap}
+.routebar{display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-bottom:12px}
+.routebar .small{flex:1 1 200px;min-width:0}
+.lunch{display:grid;gap:8px}
+.lc{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:10px 12px;display:grid;gap:3px}
+.lc .h{display:flex;justify-content:space-between;gap:10px;align-items:baseline}
+.lc .nm{font-weight:700;min-width:0}
+.lc .h a{font-size:.82rem;white-space:nowrap}
+.lc .w{font-size:.9rem}
+.lc .n{font-size:.8rem;color:var(--muted)}
+.veg{font-size:.64rem;font-weight:700;letter-spacing:.05em;text-transform:uppercase;padding:1px 7px;border-radius:99px;color:var(--ok);border:1px solid var(--ok);margin-left:6px;white-space:nowrap;vertical-align:2px}
+.veg.full{background:var(--ok);color:var(--card)}
+.secrow{display:flex;justify-content:space-between;align-items:baseline;gap:10px;margin-bottom:8px}
+.secrow h2{margin:0}
+.toggle{font:inherit;font-size:.8rem;padding:4px 10px;border-radius:99px;border:1px solid var(--line);background:var(--card);color:var(--muted);cursor:pointer}
+.toggle[aria-pressed="true"]{border-color:var(--ok);color:var(--ok);background:color-mix(in srgb,var(--ok) 10%,var(--card))}
+.pager{display:flex;justify-content:space-between;gap:8px;margin-top:26px}
+.pager button{flex:1;min-width:0;text-align:left}
+.pager button:last-child{text-align:right;justify-content:flex-end}
+
+/* reference views */
+.list{display:grid;gap:10px}
+.row{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:12px 14px;display:grid;gap:6px}
+.row .top2{display:flex;justify-content:space-between;gap:10px;align-items:baseline}
+.row .nm{font-weight:700;line-height:1.3;min-width:0}
+.row .dates{font-size:.78rem;color:var(--muted);white-space:nowrap;font-variant-numeric:tabular-nums}
+.row .sw{display:inline-block;width:8px;height:8px;border-radius:50%;background:var(--c);margin-right:6px;vertical-align:1px}
+.phone{font-variant-numeric:tabular-nums;font-weight:500;user-select:all}
+.tbl{width:100%;border-collapse:collapse;font-size:.9rem}
+.tbl td{padding:7px 0;border-bottom:1px solid var(--line);vertical-align:top}
+.tbl td:last-child{text-align:right;padding-left:12px}
+.tbl .jp{display:block;color:var(--muted);font-size:.82rem}
+.sos{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
+.sos div{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:10px;text-align:center}
+.sos b{display:block;font-size:1.5rem;font-variant-numeric:tabular-nums;color:var(--todo)}
+.sos span{font-size:.75rem;color:var(--muted)}
+.wxnums{display:flex;gap:4px 14px;flex-wrap:wrap;font-size:.85rem;color:var(--muted);font-variant-numeric:tabular-nums}
+.wxnums b{color:var(--ink);font-size:1rem}
+.tips{margin:0;padding-left:18px;display:grid;gap:6px;font-size:.92rem}
+.small{font-size:.8rem;color:var(--muted)}
+.toast{position:fixed;left:50%;bottom:calc(20px + env(safe-area-inset-bottom,0px));transform:translateX(-50%);background:var(--ink);color:var(--paper);padding:8px 14px;border-radius:8px;font-size:.85rem;z-index:9}
+@media (prefers-reduced-motion:no-preference){.chip{transition:background .15s,color .15s}}
+</style>
+</head><body>
+
+<header>
+  <div class="wrap">
+    <div class="top">
+      <div class="brand">Japan 2026<span lang="ja">日本</span></div>
+      <div class="clock" id="clock"></div>
+    </div>
+    <div class="tabs" role="tablist">
+      <button role="tab" id="tab-day" aria-selected="true" data-view="day">Day by day</button>
+      <button role="tab" id="tab-stays" aria-selected="false" data-view="stays">Stays</button>
+      <button role="tab" id="tab-weather" aria-selected="false" data-view="weather">Weather</button>
+      <button role="tab" id="tab-help" aria-selected="false" data-view="help">Help</button>
+    </div>
+    <nav class="strip" id="strip" aria-label="Pick a day"></nav>
+  </div>
+</header>
+
+<main class="wrap" id="main"></main>
+<div class="toast" id="toast" hidden></div>
+
+<script>
+const PIN='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 21s-7-6.2-7-11.5A7 7 0 0 1 19 9.5C19 14.8 12 21 12 21z"/><circle cx="12" cy="9.5" r="2.5"/></svg>';
+const TEL='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 16.9v3a2 2 0 0 1-2.2 2 19.8 19.8 0 0 1-8.6-3.1 19.5 19.5 0 0 1-6-6A19.8 19.8 0 0 1 2.1 4.2 2 2 0 0 1 4.1 2h3a2 2 0 0 1 2 1.7c.1 1 .4 1.9.7 2.8a2 2 0 0 1-.5 2.1L8 9.9a16 16 0 0 0 6 6l1.3-1.3a2 2 0 0 1 2.1-.4c.9.3 1.8.6 2.8.7a2 2 0 0 1 1.7 2z"/></svg>';
+const CLOUD='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17.5 19H8a5 5 0 1 1 1.6-9.7A6 6 0 0 1 21 12.5 3.5 3.5 0 0 1 17.5 19z"/></svg>';
+const COPY='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>';
+const maps=q=>'https://www.google.com/maps/search/?api=1&query='+encodeURIComponent(q);
+const REG={narita:'Narita',hokkaido:'Hokkaido',kyoto:'Kyoto',nikko:'Nikko',tokyo:'Tokyo'};
+
+const STAYS={
+  toyoko:{name:'Toyoko Inn Narita Airport Shinkan',jp:'東横INN成田空港新館',addr:'Tokko 560, Narita 286-0106',q:'東横INN成田空港新館',tel:'+81 476 33 1045',in:'from 15:00',out:'by 10:00',dates:'17–19 Oct',region:'narita',
+    extra:'Breakfast included. 24 h front desk. Free airport shuttle from T1 and T2 (T3 is drop-off only).'},
+  sasameyuki:{name:'Sasameyuki villa',jp:'桂木町3-29, 富良野市',addr:'Katsuragi-cho 3-29, Furano 076-0038',q:'43.350283,142.384517',tel:'+81 50 5358 6064',in:'15:00–22:00',out:'by 10:00',dates:'19–21 Oct',region:'hokkaido',
+    extra:'Detached 3-bedroom villa with kitchen and washing machine. No meals. Free parking. Upper floor by stairs only.'},
+  mystays:{name:'HOTEL MYSTAYS Sapporo Aspen',jp:'札幌市北区北8条西4丁目5',addr:'Kita 8-jo Nishi 4-5, Kita-ku, Sapporo 060-0808',q:'HOTEL MYSTAYS Sapporo Aspen',tel:'+81 11 700 2111',in:'15:00–00:00',out:'by 11:00',dates:'21–22 Oct',region:'hokkaido',
+    extra:'No breakfast. On-site parking first come, first served.'},
+  daiwa:{name:'Daiwa Roynet Hotel Kyoto Shijo Karasuma',jp:'京都市下京区烏丸通仏光寺下る大政所町678',addr:'Karasuma-dori Bukkoji kudaru, Omandokoro-cho 678, Shimogyo-ku, Kyoto 600-8413',q:'ダイワロイネットホテル京都四条烏丸',tel:'+81 75 342 1166',in:'from 14:00',out:'by 11:00',dates:'22–26 Oct',region:'kyoto',
+    extra:'Breakfast included. Doors close at 00:00; use the intercom after that.'},
+  hoden:{name:'Rakuten STAY Nikko Hoden',jp:'楽天STAY 日光宝殿',addr:'Hoden 23-1, Nikko 321-1422',q:'楽天STAY 日光宝殿',tel:'+81 50 1750 9719',in:'15:00–22:00',out:'by 10:00',dates:'26–27 Oct',region:'nikko',
+    extra:'Private apartment for 8 with kitchen, balcony and washing machine. No meals. Taxi from Nikko station is simplest with bags.'},
+  kyukamura:{name:'Kyukamura Nikko-Yumoto',jp:'休暇村 日光湯元',addr:'Yumoto Onsen, Nikko 321-1662',q:'休暇村日光湯元',tel:'+81 288 62 2421',in:'15:00–19:00',out:'by 10:00',dates:'27–28 Oct',region:'nikko',
+    extra:'Onsen resort, Japanese-style rooms. Dinner and breakfast included (set times). No shuttle to Tobu-Nikko station.'},
+  mimaru:{name:'MIMARU SUITES Tokyo Nihombashi',jp:'東京都中央区日本橋堀留町2-10-9',addr:'Nihombashi-Horidomecho 2-10-9, Chuo-ku, Tokyo 103-0012',q:'MIMARU SUITES 東京日本橋',tel:'+81 3 6661 7821',in:'15:00–22:00',out:'07:00–11:00',dates:'28 Oct–1 Nov',region:'tokyo',
+    extra:'Family suite with kitchen, washer and dryer. Front desk 07:00–22:00; arriving after 22:00 must be arranged first.'}
+};
+
+/* s: ok=booked, plan=planned, flex=flexible, todo=to do */
+const DAYS=[
+{d:17,m:10,dow:'Sat',region:'narita',title:'Take-off day',base:'In the air / Narita',wx:'13–22°C',stay:'toyoko',stayNote:'Prabhakar & Anitha only. The Berlin group is in the air.',
+ intro:`Prabhakar and Anitha land in Japan first. The Berlin four fly out in the afternoon and arrive on Sunday evening.`,
+ note:['Keep today light','The itinerary gets busy once everyone reaches Hokkaido. Get daylight tomorrow and keep naps under 30 minutes.'],
+ facts:[['Time zones','Japan is UTC+9 all year. 7 h ahead of Berlin until 25 Oct, then 8 h. Always 3 h 30 m ahead of Bengaluru.'],['Toyoko Inn','Japan\'s biggest business-hotel chain, loved for its free breakfast of rice balls and miso soup.'],['Narita Airport','Opened in 1978, about 60 km east of central Tokyo.']]},
+{d:18,m:10,dow:'Sun',region:'narita',title:'Reunion at Narita',base:'Narita airport',wx:'14–22°C',stay:'toyoko',
+ intro:`Prabhakar and Anitha get a free day in Tokyo by Skyliner, then meet the Berlin four at Narita. Everyone sleeps under one roof tonight.`,
+ note:['Heads-up','The hotel knows to expect the Berlin group at about 20:30–21:00. Shuttle times are under Help & phones.'],
+ facts:[['Skyliner','Up to 160 km/h; Narita to Ueno in about 41 minutes.'],['Ameyoko','Short for "candy-sellers\' alley", a market street squeezed under the rail tracks.'],['Senso-ji','Tokyo\'s oldest temple, founded in 645. The Kaminarimon lantern weighs about 700 kg.'],['Ueno Park','Home to Japan\'s oldest museum (1872) and zoo (1882).']]},
+{d:19,m:10,dow:'Mon',region:'hokkaido',title:'Fly north to Hokkaido',base:'Furano',wx:'4–14°C',stay:'sasameyuki',
+ intro:`An early start and a short hop to New Chitose. Then the first drive: lunch at Lake Shikotsu, on to Furano, and Ningle Terrace by lantern light. If everyone is tired, skip Shikotsu and drive straight on.`,
+ note:['Before today','Call Toyota (0123-23-0100) about the 11:30 pick-up versus the 11:35 landing, and print the JAF licence translation at a convenience store. It prints once only.'],
+ facts:[['Hokkaido','About 22% of Japan\'s land but only about 4% of its people.'],['Furano','The "belly button of Hokkaido", with its own Belly Button Festival each July.'],['Driving','Drive on the left. 50–60 km/h on ordinary roads. Deer cross at dusk; sunset is about 16:50.'],['Local flavours','Melons, cheese, wine and omelette curry.']]},
+{d:20,m:10,dow:'Tue',region:'hokkaido',title:'Furano and Biei by car',base:'Furano',wx:'4–14°C',stay:'sasameyuki',
+ intro:`Farms, flower hills and the Blue Pond around Biei, then back to Furano for sunset from Asahigaoka Park. Nothing is booked, so let the weather choose.`,
+ note:['Family note','Sunset is about 16:50 and rural roads have no lighting. Keep the fuel tank above a quarter.'],
+ facts:[['Blue Pond','Formed by a dam built after the 1988 Tokachidake eruption. Aluminium hydroxide makes it milky blue.'],['Patchwork Road','Strips of potatoes, wheat, beans and beets make the patchwork look.'],['Farm Tomita','Peak lavender is July; in October it\'s quiet fields and dried flowers.'],['Autumn','Hokkaido turns first. Around 20 Oct the lowlands are at or just past peak.']]},
+{d:21,m:10,dow:'Wed',region:'hokkaido',title:'Furano to Sapporo',base:'Sapporo',wx:'6–15°C',stay:'mystays',
+ intro:`A full day: Furano\'s glass studio and viewpoints in the morning, then the Maruyama zoo and shrine, the Shiroi Koibito chocolate factory, and Sapporo by night.`,
+ note:['Heads-up','Tomorrow\'s car return is 08:00 sharp at New Chitose. Refuel tonight, buy breakfast snacks, and plan to leave by about 06:45.'],
+ facts:[['Your address','"Kita 8-jo Nishi 4" means 8 blocks north of Odori Park and 4 blocks west.'],['Hokkaido University','William S. Clark taught here and left the farewell "Boys, be ambitious!"'],['Miso ramen','Born in Sapporo in the 1950s. Look for corn and butter on top.'],['Clock Tower','Built in 1878 and still keeps time.']]},
+{d:22,m:10,dow:'Thu',region:'kyoto',title:'Sapporo to Kyoto',base:'Kyoto',wx:'12–22°C',stay:'daiwa',
+ intro:`Return the car early, fly Peach to Osaka, and take the train into Kyoto. The first evening is deliberately easy.`,
+ note:['Luggage arrives today','The bags forwarded from Narita are due at the hotel today. Ask at the front desk when you check in.'],
+ facts:[['Kansai Airport','Opened in 1994 on a man-made island in Osaka Bay.'],['Haruka','The name means "far away".'],['Why Kyoto is so old','Imperial capital from 794 to 1868, and largely spared in WWII.'],['Your address','"Bukkoji kudaru" means just south of Bukkoji Street.']]},
+{d:23,m:10,dow:'Fri',region:'kyoto',title:'Eastern Kyoto: Higashiyama',base:'Kyoto',wx:'12–22°C',stay:'daiwa',
+ intro:`Temples, wooden lanes and tea. Kiyomizu-dera early, down through Kodaiji, Kenninji and Chion-in, the National Museum, then a kimono tea ceremony at Nishiki. Comfortable shoes, and skip a stop if legs are tired.`,
+ note:['Book the tea ceremony','Maikoya Nishiki needs an online booking; pick a late-afternoon slot. Kodaiji\'s light-up dates weren\'t confirmed, so it\'s planned by day.'],
+ facts:[['Kiyomizu-dera','Founded in 778. The wooden stage was built without a single nail.'],['Otowa Waterfall','Three streams for health, success and long life. Drinking from all three is greedy.'],['Sannenzaka','Stumble here and folklore says three years of bad luck. Shops sell gourd charms.'],['Kodaiji','Founded in 1606 by Nene in memory of Toyotomi Hideyoshi.']]},
+{d:24,m:10,dow:'Sat',region:'kyoto',title:'Ryoan-ji, Sagano train and river boat',base:'Arashiyama / Kyoto',wx:'11–21°C',stay:'daiwa',
+ intro:`Two northwest temples first if the train time allows, then the Sagano Romantic Train, the 13:00 boat down the Hozugawa, and Arashiyama in the late afternoon.`,
+ note:['Weather call','The boat runs in rain but stops if the river rises. Check hozugawakudari.jp in the morning.'],
+ facts:[['Sagano train','Car No. 5 is open-air, so no umbrellas when it rains.'],['Hozugawa boats','The river once carried timber; tourist boats began around 1895.'],['Togetsukyo','"Moon-crossing bridge". The current one dates from 1934.'],['Bamboo Grove','Moso bamboo can grow almost a metre a day.']]},
+{d:25,m:10,dow:'Sun',region:'kyoto',title:'Osaka day trip',base:'Osaka',wx:'11–21°C',stay:'daiwa',
+ intro:`A day in Osaka from the Wanderlog list: shrine, market, zoo and Shinsekai, ending under the Dotonbori neon. It\'s a long day, so pack in the morning for tomorrow\'s 08:01 train.`,
+ note:['Clocks change in Europe','From tonight Tokyo is 8 hours ahead of Berlin (it was 7).'],
+ facts:[['Fushimi Inari','Head shrine of about 30,000 Inari shrines. Foxes are the god\'s messengers.'],['Kuidaore','Osaka\'s motto: "eat until you drop".'],['Tsutenkaku','First built in 1912, inspired by the Eiffel Tower. Rub Billiken\'s feet for luck.'],['Glico Man','The running-man sign has lit Dotonbori since 1935.']]},
+{d:26,m:10,dow:'Mon',region:'nikko',title:'Kyoto to Nikko by Shinkansen',base:'Nikko',wx:'6–17°C',stay:'hoden',
+ intro:`Two reserved Shinkansen rides and a local train. Keep sightseeing modest and arrive fresh for the mountains.`,
+ note:['Big suitcases','On the Tokaido Shinkansen, bags over 160 cm (three sides added) need an oversize seat. Most suitcases are under that.'],
+ facts:[['Shinkansen','Since 1964, with average delays typically under a minute.'],['Mt Fuji','Look right about 80–100 minutes after leaving Kyoto.'],['Utsunomiya','Japan\'s gyoza capital.'],['Nikko','"Don\'t say magnificent until you have seen Nikko."']]},
+{d:27,m:10,dow:'Tue',region:'nikko',title:'Oku-Nikko and Yumoto Onsen',base:'Yumoto Onsen',wx:'0–10°C',stay:'kyukamura',
+ intro:`Up into the mountains: waterfalls, a big lake and marshland, then an onsen night with dinner included.`,
+ note:['Onsen and dinner','Dinner is at a fixed time, so tell the hotel about vegetarian needs. Wash first, no swimwear, towels out of the water. Pack warm layers: mornings can be near freezing.'],
+ facts:[['Kegon Falls','97 m, one of Japan\'s three great waterfalls.'],['Irohazaka','48 hairpin bends, one for each character of the old iroha poem.'],['Senjogahara','"Battlefield plain", where legend says a snake god and a centipede god fought.'],['Yumoto Onsen','About 1,500 m up, with milky sulphur water.']]},
+{d:28,m:10,dow:'Wed',region:'tokyo',title:'Nikko to Tokyo',base:'Tokyo · Nihombashi',wx:'13–21°C',stay:'mimaru',
+ intro:`Down to Tobu-Nikko and the SPACIA X straight to Asakusa. Settle into the Nihombashi suite and keep the evening gentle.`,
+ note:['Tight link','The bus to Tobu-Nikko is the tightest connection of the trip. Check the timetable the night before, or take the taxi.'],
+ facts:[['SPACIA X','Tobu\'s flagship express, introduced in 2023.'],['Nihombashi Bridge','Kilometre zero of Japan\'s road network. Look for the winged kirin.'],['Mitsukoshi','Its roots go back to 1673.'],['Ningyocho','"Doll town", after its old puppet theatres.']]},
+{d:29,m:10,dow:'Thu',region:'tokyo',title:'Tokyo: flexible city day',base:'Tokyo',wx:'14–22°C',stay:'mimaru',
+ intro:`A buffer day for weather and anything missed. Tsukiji, Ginza and the Imperial Palace gardens are close by.`,
+ note:['Family note','If teamLab (30th) or Shibuya (31st) gets rained out, today is the swap day.'],
+ facts:[['Tsukiji','The wholesale market moved to Toyosu in 2018; the outer market stayed.'],['Ginza','"Silver mint", after an Edo-period mint.'],['Akihabara','From post-war radio-parts market to anime capital.'],['Imperial Palace','The East Gardens were Edo Castle\'s inner grounds.']]},
+{d:30,m:10,dow:'Fri',region:'tokyo',title:'teamLab Borderless',base:'Azabudai / Roppongi',wx:'14–22°C',stay:'mimaru',
+ intro:`An immersive museum where artworks move between rooms. Keep the rest of the day relaxed around Roppongi and Tokyo Tower.`,
+ note:['What to wear','Some floors are mirrored, so skip skirts. There\'s a water zone: roll-up trousers help. Bring socks.'],
+ facts:[['teamLab Borderless','Reopened at Azabudai Hills in February 2024, with no fixed map.'],['Azabudai Hills','Mori JP Tower, about 325 m, is Japan\'s tallest building.'],['Tokyo Tower','333 m, opened 1958, about 13 m taller than the Eiffel Tower.']]},
+{d:31,m:10,dow:'Sat',region:'tokyo',title:'Shibuya, Harajuku and Halloween',base:'Tokyo',wx:'12–20°C',stay:'mimaru',
+ intro:`Shrine forest, fashion streets and the famous crossing. It\'s Halloween weekend, so keep meeting points simple.`,
+ note:['Halloween crowds','Expect police, barriers and one-way routes after dark. Agree a fixed meeting point and keep phones charged.'],
+ facts:[['Shibuya Crossing','Up to about 3,000 people cross at once.'],['Hachiko','The Akita dog who waited about nine years for his owner.'],['Meiji Jingu','About 100,000 donated trees make its forest.'],['Omotesando','Tokyo\'s tree-lined "Champs-Élysées".']]},
+{d:1,m:11,dow:'Sun',region:'tokyo',title:'Sayonara, Japan',base:'Tokyo → home',wx:'12–20°C',stay:null,
+ intro:`Check out, last souvenirs, and head to Narita. Prabhakar and Anitha fly first; the Berlin four follow at 20:30.`,
+ note:['Tax-free changes today','From 1 Nov you pay full price and claim the refund at airport customs (¥5,000+ per purchase). Allow extra time.'],
+ facts:[['Omiyage','Small boxed gifts for home: Tokyo Banana, Kit Kat flavours, wagashi.'],['Spend your coins','Yen coins aren\'t exchanged abroad. Use vending machines.'],['Ekiben','Grab a station bento for the train to Narita.']]}
+];
+
+/* Routes: stops in visiting order. Each item: [time, what, status, place query or null, how you get there from the previous stop].
+   mode = how the Route button and leg links travel: driving, walking or transit (Google can't do multi-stop transit, so those days get per-leg links). */
+const PLAN={
+oct17:{mode:'transit',start:'成田空港 第2ターミナル',items:[
+  ['02:55','JL 754 Bengaluru → Narita Terminal 2 (Prabhakar & Anitha).','ok',null],
+  ['14:35','Land at Narita T2. Late lunch in the T2 4F restaurant row, before the shuttle.','ok','成田空港 第2ターミナル'],
+  ['~15:25','Toyoko Inn shuttle from the T2 bus stop (:05, :25, :45).','plan','東横INN成田空港新館','Hotel shuttle, about 10 min'],
+  ['~15:40','Check in. Early night, no sightseeing.','ok',null],
+  ['15:45','Berlin group leaves BER (EgyptAir via Cairo, overnight to Narita).','ok',null]]},
+oct18:{mode:'transit',start:'東横INN成田空港新館',items:[
+  ['By 10:00','Prabhakar & Anitha: check out, shuttle to the airport, Skyliner to Keisei Ueno (time on the e-ticket).','ok','京成上野駅','Shuttle, then Skyliner about 41 min'],
+  ['Late morning','Ueno Park and Shinobazu Pond.','flex','不忍池','Walk 5 min'],
+  ['Midday','Ameyoko market street, then lunch.','flex','アメ横商店街','Walk 8 min'],
+  ['Afternoon','Senso-ji: Kaminarimon gate, Nakamise street, main hall.','flex','浅草寺','Ginza line Ueno → Asakusa, 5 min'],
+  ['~16:30','Back to Keisei Ueno and the Skyliner to Narita. Be in arrivals before 18:30.','plan','京成上野駅','Ginza line Asakusa → Ueno, 5 min'],
+  ['18:30','Berlin group lands (MS 964). Out around 19:30–20:00. EgyptAir normally uses T1; check the e-ticket.','ok','成田空港 第1ターミナル','Skyliner about 41 min'],
+  ['~20:10','All six take the hotel shuttle (T1 at :10, :30, :50; T2 at :05, :25, :45).','plan','東横INN成田空港新館','Hotel shuttle, about 20 min from T1'],
+  ['On arrival','Hand the Kyoto bags to the 24 h desk: waybill (staff help), pay cash, keep the receipt.','ok',null]]},
+oct19:{mode:'driving',start:'新千歳空港',items:[
+  ['07:10','Hotel shuttle to T2 (07:30 back-up), then the covered walkway to T3. Breakfast done by 06:50.','plan',null],
+  ['09:45','Jetstar GK127 Narita T3 → New Chitose, lands 11:35.','ok',null],
+  ['~12:15','Toyota Rent a Car, Poplar Shop. Passports, licence and the JAF printout.','ok','トヨタレンタカー 新千歳空港ポプラ店','Toyota shuttle from arrivals'],
+  ['13:00','Lake Shikotsu: clear caldera lake, lunch in the lakeside village by the visitor centre.','flex','支笏湖ビジターセンター','Drive about 40 min'],
+  ['~14:15','Drive to Furano, with a supermarket stop for dinner and breakfast.','plan','フクハラ 富良野店','Drive about 2 h 30 via the Doto Expressway'],
+  ['~17:15','Check in at Sasameyuki villa.','ok','43.350283,142.384517','Drive 10 min'],
+  ['19:00','Ningle Terrace: lantern-lit craft cabins in the forest. Dinner at New Furano Prince next door.','flex','ニングルテラス','Drive 15 min']]},
+oct20:{mode:'driving',start:'43.350283,142.384517',items:[
+  ['09:30','Farm Tomita: quiet autumn fields, lavender soft-serve.','flex','ファーム富田','Drive 20 min'],
+  ['10:30','Shikisai-no-Oka flower hills (late blooms, buggy rides).','flex','四季彩の丘','Drive 25 min'],
+  ['11:45','Lunch in Biei town, then the Patchwork Road viewpoints (Ken & Mary Tree, Seven Stars Tree).','flex','美瑛町 ケンとメリーの木','Drive 15 min'],
+  ['13:45','Shirogane Blue Pond.','flex','白金青い池','Drive 25 min'],
+  ['14:15','Shirahige Waterfall, 5 min further up the road.','flex','白ひげの滝','Drive 5 min'],
+  ['15:30','Furano Shrine.','flex','富良野神社','Drive 50 min via Kamifurano'],
+  ['16:15','Asahigaoka Park lookout over Furano for sunset (about 16:50). Then back to the villa.','flex','朝日ヶ丘公園 富良野','Drive 5 min']]},
+oct21:{mode:'driving',start:'43.350283,142.384517',items:[
+  ['08:45','Check out early. The Sapporo stops close at 16:00–16:30, so the day starts sooner.','ok',null],
+  ['09:00','Glass Forest in Furano: glass studio and shops (opens 09:00).','flex','グラスフォレスト イン 富良野','Drive 20 min'],
+  ['09:45','Rokugo viewing platform over the valley.','flex','麓郷展望台','Drive 8 min'],
+  ['10:30','Torinuma Park: pond and autumn trees.','flex','鳥沼公園','Drive 25 min'],
+  ['~13:00','Sapporo Maruyama Zoo, with lunch near Maruyama first (zoo 09:30–16:30, last entry 16:00).','flex','札幌市円山動物園','Drive about 2 h 15 via the Doo Expressway'],
+  ['14:45','Hokkaido Jingu shrine through the forest.','flex','北海道神宮','Walk about 20 min'],
+  ['15:15','Maruyama Park, next to the shrine.','flex','円山公園 札幌','Walk 8 min'],
+  ['15:40','Shiroi Koibito Park: chocolate factory and garden (last entry 16:30).','flex','白い恋人パーク','Drive 20 min'],
+  ['17:45','Check in and park at the hotel.','ok','HOTEL MYSTAYS 札幌アスペン','Drive 25 min'],
+  ['18:30','Sapporo Clock Tower (lit outside), then dinner around Tanukikoji.','flex','狸小路商店街','Subway or walk 20 min'],
+  ['20:30','JR Tower T38 observation deck for the night view (open till 22:00), then walk home.','flex','JRタワー展望室 T38','Walk 15 min']]},
+oct22:{mode:'transit',start:'HOTEL MYSTAYS 札幌アスペン',items:[
+  ['06:45','Leave Sapporo, refuel near the airport.','plan',null],
+  ['08:00','Return the Alphard at the Poplar Shop. Staff shuttle you to the terminal.','ok','トヨタレンタカー 新千歳空港ポプラ店','Drive about 50 min'],
+  ['09:30','Brunch at New Chitose (3F). Lunch will be late otherwise.','plan','新千歳空港 国内線ターミナル 3階','Toyota shuttle'],
+  ['11:10','Peach MM104 → Kansai Airport T2, lands 13:30. Free bus to T1 and the station.','ok','関西国際空港 第2ターミナル','Flight'],
+  ['14:30','JR Haruka to Kyoto Station (75–80 min), then Karasuma subway to Shijo.','plan','京都駅','Haruka'],
+  ['~16:00','Check in at Daiwa Roynet. Ask the desk for the forwarded bags.','ok','ダイワロイネットホテル京都四条烏丸','Subway 2 stops + walk 3 min'],
+  ['Evening','Easy dinner and a stroll through Nishiki Market (most stalls close around 18:00).','flex','錦市場','Walk 10 min']]},
+oct23:{mode:'walking',start:'ダイワロイネットホテル京都四条烏丸',items:[
+  ['08:30','Kiyomizu-dera before the tour buses. Two taxis is easiest for six.','plan','清水寺','Taxi about 15 min'],
+  ['09:45','Sannenzaka and Ninenzaka lanes (watch your step on Sannenzaka).','plan','産寧坂','Walk 5 min downhill'],
+  ['10:30','Kodaiji temple and garden (or come back for the evening light-up).','plan','高台寺','Walk 5 min'],
+  ['11:30','Kenninji: Kyoto\'s oldest Zen temple, twin-dragon ceiling and Wind and Thunder Gods screens.','flex','建仁寺','Walk 12 min'],
+  ['12:30','Lunch around Gion or Yasaka.','plan','八坂神社','Walk 10 min'],
+  ['13:45','Chion-in: huge Sanmon gate and temple (closes 16:00).','flex','知恩院','Walk 5 min'],
+  ['14:30','Maruyama Park, then a rest stop with sweets.','flex','円山公園','Walk 4 min'],
+  ['15:30','Kyoto National Museum (closed Mondays; check the day\'s hours).','flex','京都国立博物館','Taxi 10 min'],
+  ['Late afternoon','Kimono tea ceremony at Maikoya Nishiki. Book a slot online first.','todo','舞妓体験 舞小屋 錦','Taxi 15 min'],
+  ['Evening','Dinner near Nishiki, or Kodaiji light-up if it has started.','flex',null]]},
+oct24:{mode:'transit',start:'ダイワロイネットホテル京都四条烏丸',items:[
+  ['08:00','Ryoan-ji rock garden (opens 08:00). Only if your Sagano train is after about 10:45.','flex','龍安寺','Taxi about 25 min'],
+  ['09:00','Ninna-ji temple and five-storey pagoda (opens 09:00).','flex','仁和寺','Walk 10 min'],
+  ['~10:00','Taxi to Torokko Saga. Pick up lunch at the station kiosks, since there\'s no time later.','plan','トロッコ嵯峨駅','Taxi about 15 min'],
+  ['Train time on e-ticket','Sagano Romantic Train to Torokko Kameoka (25 min). Open the e-ticket link on the phone.','ok','トロッコ亀岡駅','Train 25 min'],
+  ['By 12:30','Taxi or shuttle bus to the boat landing. Eat and use the toilet here: none on board.','plan','保津川下り 乗船場','Taxi about 10 min'],
+  ['13:00','Hozugawa River Boat, 2 hours, landing at Togetsukyo Bridge in Arashiyama.','ok','渡月橋','Boat 2 h'],
+  ['15:15','Tenryu-ji garden (last entry 16:50).','plan','天龍寺','Walk 5 min'],
+  ['16:15','Bamboo Grove, through Tenryu-ji\'s north gate.','plan','竹林の小径','Walk 3 min'],
+  ['17:00','Early dinner (yudofu), then JR from Saga-Arashiyama back to Kyoto.','plan','嵯峨嵐山駅','Walk 10 min']]},
+oct25:{mode:'transit',start:'ダイワロイネットホテル京都四条烏丸',items:[
+  ['Before leaving','Pack most of your bags this morning: tomorrow\'s train is at 08:01 and you\'ll be back late.','todo',null],
+  ['07:30','Optional: Fushimi Inari gates at their quietest, on the way to Osaka.','flex','伏見稲荷大社','Subway + JR, about 20 min'],
+  ['10:15','Namba Yasaka Shrine, with its giant lion-head stage.','flex','難波八阪神社','Keihan to Yodoyabashi + Midosuji line, about 60 min'],
+  ['11:15','Kuromon Market for lunch and tasting.','flex','黒門市場','Walk 15 min'],
+  ['12:45','Tennoji Zoo (closed Mondays; last entry 16:00).','flex','天王寺動物園','Sakaisuji line 2 stops'],
+  ['15:00','Tsutenkaku tower and Shinsekai. Booking the deck ahead skips the queue.','flex','通天閣','Walk 5 min'],
+  ['16:30','Shinsaibashi-suji shopping arcade.','flex','心斎橋筋商店街','Sakaisuji + Midosuji lines, about 20 min'],
+  ['17:30','Dotonbori as the neon comes on: the Glico sign, canal walk, street food for dinner.','flex','道頓堀','Walk 5 min'],
+  ['~19:30','Midosuji line to Osaka Station, then JR Special Rapid to Kyoto (about 30 min).','plan','京都駅','About 50 min door to door']]},
+oct26:{mode:'transit',start:'ダイワロイネットホテル京都四条烏丸',items:[
+  ['~07:15','Karasuma subway to Kyoto Station.','plan','京都駅','Subway 2 stops'],
+  ['08:01','Nozomi 240 → Tokyo, arrives 10:15. Fuji on the right around 09:20–09:40.','ok','東京駅','Shinkansen'],
+  ['11:00','Yamabiko 135 → Utsunomiya, arrives 11:48. Tohoku platforms 20–23. Pick up bento in Tokyo Station if you like.','ok','宇都宮駅','Shinkansen'],
+  ['12:00','Gyoza lunch near Utsunomiya Station.','plan','宇都宮みんみん 駅東口店','Walk 2 min'],
+  ['~13:15','JR Nikko Line to Nikko (about 45 min, not reserved).','plan','JR日光駅','Train 45 min'],
+  ['~14:15','Taxi to the apartment. Optional: Shinkyo Bridge on the way in.','todo','楽天STAY 日光宝殿','Taxi'],
+  ['15:00','Check in at Rakuten STAY Nikko Hoden.','ok',null]]},
+oct27:{mode:'transit',start:'楽天STAY 日光宝殿',items:[
+  ['By 10:00','Check out. Taxi (or bus) up the Irohazaka road with the bags.','ok',null],
+  ['10:45','Kegon Falls; take the lift to the base viewing deck.','plan','華厳の滝','Taxi about 40 min'],
+  ['11:45','Lake Chuzenji shore and lunch nearby.','plan','中禅寺湖','Walk 5 min'],
+  ['13:15','Ryuzu Falls.','plan','竜頭の滝','Bus or taxi 15 min'],
+  ['14:00','Senjogahara: short boardwalk from Akanuma, as far as feels good.','plan','赤沼自然情報センター','Bus or taxi 5 min'],
+  ['15:00','Yudaki Falls at the edge of Yumoto.','flex','湯滝','Bus or taxi 10 min'],
+  ['15:30','Check in at Kyukamura. Onsen and the set dinner.','ok','休暇村日光湯元','Taxi 5 min']]},
+oct28:{mode:'transit',start:'休暇村日光湯元',items:[
+  ['By 10:00','Check out. Leave Yumoto by 10:00–10:15 (pre-booked taxi or bus).','todo',null],
+  ['~11:15','Tobu-Nikko Station. Early lunch or bento before the train.','plan','東武日光駅','Taxi about 1 h, bus about 1½ h'],
+  ['11:55','SPACIA X 004 → Asakusa, arrives 13:45. Premium seats.','ok','浅草駅','Train 1 h 50'],
+  ['14:00','Optional quick look at Kaminarimon and Nakamise.','flex','雷門','Walk 3 min'],
+  ['15:00','Taxi to MIMARU and check in (Kyoto bags should be waiting).','ok','MIMARU SUITES 東京日本橋','Taxi about 15 min'],
+  ['Evening','Easy dinner around Ningyocho and Amazake Yokocho.','flex','甘酒横丁','Walk 5 min']]},
+oct29:{mode:'transit',start:'MIMARU SUITES 東京日本橋',items:[
+  ['08:30','Tsukiji Outer Market for breakfast (many stalls close early afternoon).','flex','築地場外市場','Hibiya line Ningyocho → Tsukiji, 10 min'],
+  ['10:30','Ginza: Itoya, Uniqlo, Muji, Don Quijote. Lunch in Ginza.','flex','銀座 伊東屋','Walk 12 min'],
+  ['13:30','Imperial Palace East Gardens via Otemon gate (free; closed Mon and Fri).','flex','皇居東御苑 大手門','Walk 20 min or taxi 5 min'],
+  ['15:30','Tokyo Station Marunouchi side and the free KITTE rooftop garden.','flex','KITTE丸の内','Walk 12 min'],
+  ['Evening','Back to Nihombashi. Make sure Shibuya Sky for the 31st is booked.','todo','MIMARU SUITES 東京日本橋','Taxi 10 min']]},
+oct30:{mode:'transit',start:'MIMARU SUITES 東京日本橋',items:[
+  ['10:15','Hibiya line Ningyocho → Kamiyacho (direct). Arrive by 10:45.','plan','神谷町駅','Hibiya line about 20 min'],
+  ['11:00–11:30','teamLab Borderless entry window (e-ticket). Visit takes 2–3 h.','ok','チームラボボーダレス 麻布台ヒルズ','Walk 5 min'],
+  ['13:30','Lunch in Azabudai Hills.','flex','麻布台ヒルズ','Walk'],
+  ['15:00','Tokyo Tower.','flex','東京タワー','Walk 10 min'],
+  ['16:00','Zojo-ji temple with Tokyo Tower behind it.','flex','増上寺','Walk 5 min'],
+  ['Evening','Home from Kamiyacho or Onarimon. Early night.','flex','MIMARU SUITES 東京日本橋','Subway about 25 min']]},
+oct31:{mode:'transit',start:'MIMARU SUITES 東京日本橋',items:[
+  ['09:00','Meiji Jingu forest shrine.','plan','明治神宮','Hanzomon line from Suitengumae to Omotesando, then Chiyoda line 1 stop; about 30 min'],
+  ['10:30','Takeshita Street.','plan','竹下通り','Walk 5 min'],
+  ['11:30','Omotesando avenue, lunch around here.','plan','表参道ヒルズ','Walk 8 min'],
+  ['13:30','Cat Street down to Shibuya, then Shibuya Parco (Nintendo TOKYO, Pokémon Center).','flex','渋谷パルコ','Walk 20 min'],
+  ['15:30','Hachiko and the Scramble Crossing.','plan','渋谷スクランブル交差点','Walk 8 min'],
+  ['16:20','SHIBUYA SKY for sunset (about 16:50). Booking opens 17 Oct.','todo','渋谷スカイ','Walk 3 min'],
+  ['18:00','Leave the busy streets. Dinner in Ebisu or Omotesando, Hanzomon line home.','plan',null]]},
+nov1:{mode:'transit',start:'MIMARU SUITES 東京日本橋',items:[
+  ['By 11:00','Check out of MIMARU. Pick up Ningyocho sweets on the way.','ok','人形町','Walk 5 min'],
+  ['11:30','Tokyo Station: lockers for bags, Character Street and Gransta, lunch.','flex','東京キャラクターストリート','Taxi 10 min'],
+  ['~13:00','Narita Express from Tokyo Station (about 1 h), or Skyliner from Ueno.','plan','成田空港 第2ターミナル','N\'EX about 1 h'],
+  ['~15:30','Prabhakar & Anitha at the JAL counter, Terminal 2.','plan',null],
+  ['18:25','JL 753 → Bengaluru, arrives Mon 2 Nov 00:50.','ok',null],
+  ['20:30','MS 965 → Berlin (1 stop), arrives Mon 2 Nov 13:55. Check the terminal on the e-ticket.','ok',null]]}
+};
+
+/* Lunch: [name, maps query, what it is, practical note, veg]. veg: 2 = vegetarian/vegan place, 1 = reliable veg dishes (ask about dashi), 0 = not veg */
+const LUNCH={
+oct17:[
+  ["T's Tantan, Narita T2",'T\'s たんたん 成田空港第2ターミナル','Vegan ramen, curry and gyoza. Every dish is plant-based.','T2 4F, before security. About ¥1,400–1,900.',2],
+  ['Sojibou soba, Narita T2','そじ坊 成田空港第2ターミナル','House-made soba, hot or cold.','T2 4F. Quick and cheap. Broth has fish stock.',0],
+  ['La Toque curry, Narita T2','ラ・トック 成田空港','Japanese curry rice, halal kitchen.','T2 4F. Mostly chicken dishes.',0],
+  ['Convenience store in T2','セブンイレブン 成田空港第2ターミナル','Onigiri, sandwiches, hot snacks for the room.','Kombu or ume onigiri are fish-free.',1],
+  ['Toyoko Inn breakfast (tomorrow)','東横INN成田空港新館','Free breakfast: rice balls, miso soup, sides.','Included. Ask which items are fish-free.',1]],
+oct18:[
+  ['Marugoto Vegan Dining Asakusa','まるごとVegan Dining 浅草','Vegan curry, tempura and sweets.','Sun 11:30–17:00. Closed Mondays.',2],
+  ['spicemama','spicemama 浅草','Indian curry with vegan options.','Weekends 11:30–15:00. Closed Mon and Tue.',2],
+  ['Fucha Vegetarian Cuisine Bon','精進料理 梵','Buddhist temple-style vegetarian (shojin) courses.','Iriya, one stop from Ueno. Sun 12:00–20:00. ¥3,000–5,000. Closed Wed.',2],
+  ['Daikokuya Tempura','大黒家天麩羅 浅草','Famous tendon (tempura rice bowl) since 1887.','Near Senso-ji. Expect a queue at lunch.',0],
+  ['Ponta Honke','ぽん多本家','Classic tonkatsu in Ueno.','Lunch 11:00–14:00. Closed Mondays.',0],
+  ['Asakusa Kagetsudo','浅草花月堂 本店','Giant melonpan, perfect walking snack.','Next to Senso-ji. Cash recommended.',1]],
+oct19:[
+  ['Oshokujidokoro Kotobuki','お食事処 寿 支笏湖','Lake Shikotsu\'s himemasu (kokanee) as sushi, sashimi or grilled.','Short walk from the visitor centre.',0],
+  ['Lakeside Kitchen Tonton','支笏湖 湖畔の台所 とんとん','Himemasu tempura bowl and set meals.','Opposite the visitor centre. Himemasu is seasonal; other sets year-round.',0],
+  ['Healthy Buffet Amam','ヘルシービュッフェ AMAM 水の謌','Vegetable-focused lunch buffet at the Mizu no Uta resort.','Lunch open to non-guests. Check times.',1],
+  ['Biei Senka bakery, New Chitose','美瑛選果 新千歳空港','Bread and pastries before you collect the car.','Domestic terminal 2F, 08:00–20:00.',2],
+  ['Hanabatake Bokujo Cafe, New Chitose','花畑牧場 新千歳空港','Cheese pasta and raclette.','Domestic terminal 3F, 10:00–20:00.',1],
+  ['Hokkaido Ramen Dojo, New Chitose','北海道ラーメン道場 新千歳空港','Ten ramen shops in one row, if Shikotsu is too late for lunch.','Domestic terminal 3F.',0]],
+oct20:[
+  ['Furano Cheese Factory pizza','富良野チーズ工房 ピッツァ工房','Wood-fired pizza with Furano cheese; margherita is vegetarian.','First stop of the day.',1],
+  ['KOERU Biei','KOERU 美瑛','Biei curry udon and local pork sets, by Biei Station.','11:00–14:30. Closed days not listed; check.',0],
+  ['Michi-no-eki Biei Oka no Kura','道の駅 びえい 丘のくら','Corn bread, corn butter croquettes, corn ramen.','3 min from Biei Station.',1],
+  ['Biei Senka','美瑛選果','Biei vegetables, bakery, and the Asperges restaurant.','On Route 237 at the edge of Biei. The restaurant can be seasonal; check.',2],
+  ['Junpei','じゅんぺい 美瑛','Huge prawn-tempura rice bowls, a local institution.','Popular; check closed days before going.',0],
+  ['Seicomart','セイコーマート 美瑛','Hokkaido\'s own convenience store with hot food.','Onigiri and fries for the road.',1]],
+oct21:[
+  ['Holistic Bio Cafe Veggy Way','Veggy Way 円山','Fully vegan: ramen, lunch sets, onigiri, soft-serve.','Maruyama, 5 min from the zoo area. Check closed days.',2],
+  ['Mame Kitchen Maruyama','まめきっちん 円山','Bean-based bowls, pizza and salads; vegan dishes clearly marked.','Maruyama.',2],
+  ['Rojiura Curry Samurai','路地裏カリィ侍 札幌','Soup curry. The vegetable curry is vegan.','Several Sapporo branches. Good for dinner too.',2],
+  ['Maruyama Zoo cafeteria','札幌市円山動物園 レストラン','Simple family food inside the zoo.','Saves time if you go straight in.',1],
+  ['Soup Curry Garaku','スープカレー GARAKU','Sapporo\'s best-known soup curry.','Near Tanukikoji; better for dinner.',0],
+  ['Ganso Ramen Yokocho','元祖さっぽろラーメン横丁','Alley of tiny miso-ramen shops.','Susukino. Dinner option.',0]],
+oct22:[
+  ['Hokkaido Ramen Dojo','北海道ラーメン道場 新千歳空港','Ten ramen shops in one row.','Domestic terminal 3F.',0],
+  ['Fukutei kamameshi','ふく亭 新千歳空港','Kettle rice with Hokkaido seafood.','Domestic terminal 3F, from 10:30.',0],
+  ['Hanabatake Bokujo Cafe','花畑牧場 新千歳空港','Cheese pasta and raclette.','Domestic terminal 3F, from 10:00.',1],
+  ['Biei Senka bakery','美瑛選果 新千歳空港','Bread and pastries to take on the plane.','Domestic terminal 2F, from 08:00.',2],
+  ['Ekiben on the Haruka','京都駅 駅弁','Buy a bento at KIX station and eat on the train.','Look for 野菜 (vegetable) bento.',1]],
+oct23:[
+  ['Mimikou','味味香 祇園','Curry udon with a vegan kombu-shiitake option.','Near Yasaka Shrine. 11:30–20:30. About ¥1,000–2,000.',2],
+  ['Okutan Kiyomizu','奥丹 清水','Simmered tofu (yudofu) courses in a garden.','Near Kiyomizu-dera. About ¥3,000–4,000. Ask for kombu-only broth.',1],
+  ['Hisago','ひさご 京都','Folksy noodle and rice shop, famous oyakodon.','Below Ninenzaka. Go off-peak to skip the queue.',0],
+  ['Tousuiro Gion','豆水楼 祇園','Tofu kaiseki with a vegan course.','Book 3+ days ahead. Pricier.',2],
+  ['Kasagiya','かさぎ屋','Old sweet shop: zenzai and matcha.','Top of Ninenzaka. A good rest stop.',1],
+  ['Kagizen Yoshifusa','鍵善良房 本店','Kuzukiri noodles in black-sugar syrup.','Gion. Sweet break for Anirudh.',1]],
+oct24:[
+  ['Kyoto Station bento','京都駅 駅弁','Buy lunch to eat before the boat.','Isetan B1 and station shops. Look for 精進 or 野菜 bento.',1],
+  ['Cafe Style Resort Saganoyu','嵯峨野湯','Café in an old bathhouse; tofu pasta lunch set.','1 min from Saga-Arashiyama Station. 11:00–19:00.',1],
+  ['Tenryuji Shigetsu','天龍寺 篩月','Temple vegetarian (shojin) lunch.','11:00–14:00, closed Thu. Book 2 days ahead. Only if your train is early.',2],
+  ['Arashiyama Yoshimura','嵐山よしむら','Hand-made soba overlooking Togetsukyo.','Right where the boat lands. Late lunch after 15:00.',0],
+  ['Yudofu Sagano','湯豆腐 嵯峨野','Yudofu set meals in a garden.','Arashiyama. Ask for kombu-only broth.',1],
+  ['Yojiya Cafe Sagano','よーじやカフェ 嵯峨野嵐山店','Café in a Japanese house; pasta and matcha.','10:00–18:00, open daily.',1]],
+oct25:[
+  ['Kuromon Market stalls','黒門市場','Grilled scallops, fruit, tamagoyaki, takoyaki.','Most stalls close by late afternoon. Veg is limited.',0],
+  ['Shojin Sushi Minamo','精進鮨 みなも','Vegan sushi, eggplant "eel" bowls.','2 min from Shinsaibashi Station. Check hours.',2],
+  ['Paprika Shokudo Vegan','パプリカ食堂ヴィーガン','Vegan karaage, hamburg steak, omurice.','Near Yotsubashi Station. Check hours.',2],
+  ['Chibo Dotonbori','千房 道頓堀ビル','Okonomiyaki; vegetarian and vegan versions on the menu.','Dotonbori. Good for dinner too.',1],
+  ['Kushikatsu Daruma, Shinsekai','串かつだるま 新世界総本店','Osaka\'s deep-fried skewers. Rule: no double-dipping.','Next to Tsutenkaku.',0],
+  ['Vermillion Espresso Bar','Vermillion Espresso Bar','Coffee and toast after the Fushimi Inari gates.','Opens 08:00.',1]],
+oct26:[
+  ['Utsunomiya Minmin','宇都宮みんみん 駅東口店','The city\'s best-known gyoza.','Branch at the station east exit. Main shop closed Tue.',0],
+  ['Koran','香蘭 宇都宮','Old-school gyoza, cabbage-heavy filling.','5 min from the station. Open daily.',0],
+  ['Kirasse','来らっせ 本店','Gyoza food court, several shops in one place.','20 min walk. Open daily.',0],
+  ["T's Tantan, Tokyo Station",'T\'s たんたん 東京駅','Vegan ramen inside the ticket gates.','Keiyo Street. A tight fit in the 45 min change; takeaway is safer.',2],
+  ['Tokyo Station ekiben','駅弁屋 祭 東京駅','Hundreds of bento from all over Japan.','Inside the gates, central passage. Veg bento exist; read labels.',1]],
+oct27:[
+  ['Kiyo-chan yuba soba','お休み処 清ちゃん','Purple soba with yuba; grilled fish too.','By Lake Chuzenji, near the boat pier. Ask about fish-free broth.',1],
+  ['Ryuzu-no-chaya','竜頭の茶屋','Teahouse at Ryuzu Falls: soba and dango.','Right at the falls.',1],
+  ['Akanuma Chaya','赤沼茶屋','Simple soba and udon at the Senjogahara trailhead.','Next to the Akanuma bus stop.',0],
+  ['Yasai Cafe Meguri','yasai cafe meguri 日光','Organic vegan set meals.','In Nikko town; only if you start later.',2],
+  ['Hippari Dako','ひっぱり凧 日光','Cosy yakitori, yakisoba and yuba; veg dishes available.','Nikko town, near Shinkyo Bridge.',1],
+  ['Nikko Takaiya','日光 高井家','Yuba kaiseki lunch.','Nikko town. 12:00–15:00. No regular holidays.',1]],
+oct28:[
+  ['Maruhide Shokudo','まるひで食堂 日光','Yuba burger and yuba tomato ramen.','Short walk from Tobu-Nikko Station.',1],
+  ['Tobu-Nikko Station bento','東武日光駅','Bento and snacks for the train.','Buy before boarding.',1],
+  ['Marugoto Vegan Dining Asakusa','まるごとVegan Dining 浅草','Vegan curry, tempura and sweets.','Tue–Fri 11:30–15:00. Closed Mondays.',2],
+  ['Daikokuya Tempura','大黒家天麩羅 浅草','Tendon since 1887.','A late lunch after 14:00 means a shorter queue.',0],
+  ['Asakusa Kagetsudo','浅草花月堂 本店','Giant melonpan.','Next to Senso-ji.',1]],
+oct29:[
+  ['Sushizanmai Tsukiji','すしざんまい 本店','Sushi chain flagship, open long hours.','Tsukiji. Easy with kids.',0],
+  ['Tsukiji Yamachou','築地山長','Tamagoyaki on a stick.','Snack. Contains fish stock.',0],
+  ['Ain Soph Ginza','アインソフ 銀座','Vegan café: burgers, curry, pancakes.','Ginza. Check closed day.',2],
+  ['Nataraj Ginza','ナタラジ 銀座','Indian vegetarian restaurant.','Ginza. Lunch sets.',2],
+  ['Ginza Bairin','銀座 梅林','Tonkatsu since 1927.','Ginza.',0],
+  ['MUJI Diner Ginza','MUJI Diner 銀座','Simple Japanese set meals with veg choices.','Muji flagship building.',1],
+  ['Ginza Kagari','銀座 篝','Creamy chicken ramen.','Queue is long; go early.',0]],
+oct30:[
+  ['Azabudai Hills Market','麻布台ヒルズマーケット','Food hall downstairs with many counters.','Next to teamLab.',1],
+  ['ALCHEMY','ALCHEMY 麻布台ヒルズ','Vegetable bowls and salads.','Azabudai Hills. 11:00–20:00.',2],
+  ["C'est du nanan Tokyo",'C\'est du nanan Tokyo','Plant-based bagels and baked goods.','Kamiyacho. Closed Sundays.',2],
+  ['plants base TSUMINAKI','TSUMINAKI 六本木','Vegan mapo tofu and gyoza.','Roppongi. 10:00–16:30.',2],
+  ['Frijoles Roppongi','FRIJOLES 六本木','Burritos, bowls, tacos; easy veg choices.','Roppongi. 10:00–21:00.',1],
+  ['Tokyo Tower Foodtown','東京タワー フットタウン','Casual food court under the tower.','Good for kids.',1]],
+oct31:[
+  ['Nataraj Harajuku Omotesando','ナタラジ 原宿表参道','Indian vegetarian, all-day.','11:30–23:00. No regular holiday.',2],
+  ['Vegan Bistro Jangara','ヴィーガンビストロじゃんがら 原宿','Vegan ramen, curry, burgers.','11:00–21:00, open year-round.',2],
+  ['AFURI Harajuku','AFURI 原宿','Yuzu-shio ramen; a vegan ramen is on the menu.','Short queue at lunch.',1],
+  ['Uobei Shibuya Dogenzaka','魚べい 渋谷道玄坂店','Conveyor sushi delivered by mini-shinkansen.','Fun for Anirudh. Veg plates are few.',0],
+  ['bills Omotesando','bills 表参道','Ricotta pancakes and brunch.','Tokyu Plaza. Expect a wait.',1],
+  ['Vegan Veggie Joga','ヴィーガン ヴェジー ジョガ 表参道','Vegan Chinese.','Lunch 11:00–15:00 at weekends.',2]],
+nov1:[
+  ["T's Tantan, Tokyo Station",'T\'s たんたん 東京駅','Vegan ramen, inside the ticket gates.','Keiyo Street. Use it before the N\'EX.',2],
+  ['Tokyo Ramen Street','東京ラーメンストリート','Eight famous ramen shops, incl. Rokurinsha tsukemen.','Yaesu side, B1. Queues.',0],
+  ['Ekibenya Matsuri','駅弁屋 祭 東京駅','Bento for the train to Narita.','Inside the gates.',1],
+  ['Tamahide','玉ひで 人形町','The birthplace of oyakodon (1760).','Ningyocho, near MIMARU. Long queue.',0],
+  ['Gransta food hall','グランスタ東京','Sweets, bento and omiyage inside Tokyo Station.','Easy last-minute gifts.',1],
+  ["T's Tantan, Narita T2",'T\'s たんたん 成田空港第2ターミナル','Vegan ramen at the airport.','T2 4F, before security.',2]]
+};
+
+const PHONES=[
+  ['Toyota Rent a Car, Poplar Shop','New Chitose',  '+81 123 23 0100'],
+  ['Toyota reservation centre','Free in Japan','0800-7000-815'],
+  ['Nikko Kotsu taxi','Free in Japan','0120-81-2552'],
+  ['Nikko Kotsu taxi','Nikko office','0288-54-1188'],
+  ['Nikko sightseeing taxi','Optional, 27 Oct','0288-54-1197'],
+  ['Booking.com support','24 h, from Japan','+44 20 3320 2609']
+];
+const PHRASES=[
+  ['Thank you (very much)','Arigatō (gozaimasu)','ありがとう(ございます)'],
+  ['Excuse me / sorry','Sumimasen','すみません'],
+  ['This one, please','Kore o kudasai','これをください'],
+  ['The bill, please','Okaikei onegaishimasu','お会計お願いします'],
+  ['Where is the toilet?','Toire wa doko desu ka?','トイレはどこですか'],
+  ['I\'m vegetarian','Bejitarian desu','ベジタリアンです'],
+  ['No meat or fish stock, please','Dashi mo nuki de onegaishimasu','だしも抜きでお願いします'],
+  ['Is this OK for kids?','Kodomo demo daijōbu desu ka?','子供でも大丈夫ですか'],
+  ['Delicious!','Oishii!','おいしい!']
+];
+
+const $=s=>document.querySelector(s);
+const esc=s=>String(s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+const key=d=>(d.m===10?'oct':'nov')+d.d;
+const ymd=d=>`2026-${d.m}-${String(d.d).padStart(2,'0')}`;
+const sLabel={ok:'Booked',plan:'Planned',flex:'Flexible',todo:'To do'};
+const telHref=n=>'tel:'+n.replace(/[^+\d]/g,'');
+
+function japanDate(){
+  const p=new Intl.DateTimeFormat('en-CA',{timeZone:'Asia/Tokyo',year:'numeric',month:'2-digit',day:'2-digit'}).format(new Date());
+  return p; // YYYY-MM-DD
+}
+function todayIndex(){
+  const t=japanDate();
+  return DAYS.findIndex(d=>`2026-${String(d.m).padStart(2,'0')}-${String(d.d).padStart(2,'0')}`===t);
+}
+function tick(){
+  const f=tz=>new Intl.DateTimeFormat('en-GB',{timeZone:tz,hour:'2-digit',minute:'2-digit'}).format(new Date());
+  const wd=new Intl.DateTimeFormat('en-GB',{timeZone:'Asia/Tokyo',weekday:'short',day:'numeric',month:'short'}).format(new Date());
+  $('#clock').innerHTML=`Japan <b>${f('Asia/Tokyo')}</b> · ${wd}<br>Berlin ${f('Europe/Berlin')} · Bengaluru ${f('Asia/Kolkata')}`;
+}
+
+let view='day', cur=0, vegOnly=false;
+try{vegOnly=localStorage.getItem('vegOnly')==='1'}catch(e){}
+const tIdx=todayIndex();
+
+function stayCard(id,note){
+  const s=STAYS[id];
+  return `<div class="stay">
+    <div><div class="nm">${esc(s.name)}</div><div class="jp" lang="ja">${esc(s.jp)}</div></div>
+    ${note?`<div class="small">${esc(note)}</div>`:''}
+    <dl class="kv"><dt>Address</dt><dd>${esc(s.addr)}</dd><dt>Check-in</dt><dd>${esc(s.in)}</dd><dt>Check-out</dt><dd>${esc(s.out)}</dd><dt>Phone</dt><dd class="phone">${esc(s.tel)}</dd></dl>
+    <div class="small">${esc(s.extra)}</div>
+    <div class="actions">
+      <a class="btn primary" href="${maps(s.q)}" target="_blank" rel="noopener">${PIN}Open in Maps</a>
+      <a class="btn" href="${telHref(s.tel)}">${TEL}Call</a>
+      <button class="btn" type="button" data-copy="${esc(s.jp)}">${COPY}Copy address for taxi</button>
+    </div></div>`;
+}
+
+function renderDay(){
+  const d=DAYS[cur];
+  document.documentElement.style.setProperty('--region',`var(--${d.region})`);
+  const t=japanDate();
+  let banner='';
+  if(t<'2026-10-17'){
+    const days=Math.round((Date.parse('2026-10-17T00:00:00+09:00')-Date.now())/864e5);
+    banner=`<p class="banner"><b>${days} day${days===1?'':'s'} to go.</b> Once you're in Japan this page opens on that day automatically.</p>`;
+  } else if(t>'2026-11-01'){
+    banner=`<p class="banner">The trip is over. Okaeri, welcome home.</p>`;
+  }
+  const P=PLAN[key(d)], mode=P.mode;
+  let prevQ=P.start;
+  const items=P.items.map(([tm,txt,s,q,leg])=>{
+    let legHtml='';
+    if(q){
+      const dir=`https://www.google.com/maps/dir/?api=1&origin=${encodeURIComponent(prevQ)}&destination=${encodeURIComponent(q)}&travelmode=${mode}`;
+      legHtml=`<div class="leg">${leg?`<span>↳ ${esc(leg)}</span>`:''}<a href="${dir}" target="_blank" rel="noopener">Directions ↗</a><a href="${maps(q)}" target="_blank" rel="noopener">Map ↗</a></div>`;
+      prevQ=q;
+    }
+    return `<li><div class="when"><span class="t">${esc(tm)}</span><span class="pill ${s}">${sLabel[s]}</span></div><div class="what">${esc(txt)}</div>${legHtml}</li>`;
+  }).join('');
+  const stops=[P.start,...P.items.filter(i=>i[3]).map(i=>i[3])].filter((q,i,a)=>q!==a[i-1]);
+  let route='';
+  if(mode!=='transit' && stops.length>1){
+    const o=stops[0], dst=stops[stops.length-1], w=stops.slice(1,-1).slice(0,9);
+    const url=`https://www.google.com/maps/dir/?api=1&origin=${encodeURIComponent(o)}&destination=${encodeURIComponent(dst)}${w.length?`&waypoints=${encodeURIComponent(w.join('|'))}`:''}&travelmode=${mode}`;
+    route=`<div class="routebar"><a class="btn primary" href="${url}" target="_blank" rel="noopener">${PIN}Route for today</a><span class="small">Opens all ${stops.length} stops in Google Maps, ${mode==='driving'?'by car':'on foot'}.</span></div>`;
+  } else if(stops.length>1){
+    route=`<div class="routebar"><span class="small">Train and subway day: tap <b>Directions</b> under each stop for that leg on public transport.</span></div>`;
+  }
+  const L=LUNCH[key(d)]||[];
+  const lunchHtml=L.filter(x=>!vegOnly||x[4]).map(([nm,q,w,n,v])=>`<div class="lc"><div class="h"><div class="nm">${esc(nm)}${v===2?'<span class="veg full">Vegetarian</span>':v===1?'<span class="veg">Veg options</span>':''}</div><a href="${maps(q)}" target="_blank" rel="noopener">Map ↗</a></div><div class="w">${esc(w)}</div><div class="n">${esc(n)}</div></div>`).join('');
+  const prev=DAYS[cur-1], next=DAYS[cur+1];
+  $('#main').innerHTML=`${banner}
+  <div class="dayhead">
+    <div class="eyebrow">${REG[d.region]}<span class="n">Day ${cur+1} of 16${cur===tIdx?' · today':''}</span></div>
+    <h1>${esc(d.title)}</h1>
+    <div class="meta"><span>${d.dow} ${d.d} ${d.m===10?'Oct':'Nov'}</span><span>Base: ${esc(d.base)}</span><a href="${live(WX[DAYWX[key(d)]].q)}" target="_blank" rel="noopener">${esc(d.wx)} · live forecast ↗</a></div>
+    <p class="intro">${esc(d.intro)}</p>
+  </div>
+  <section class="sec"><h2>Today's route</h2>${route}<ol class="tl">${items}</ol></section>
+  ${L.length?`<section class="sec"><div class="secrow"><h2>Lunch nearby</h2><button class="toggle" type="button" id="vegtoggle" aria-pressed="${vegOnly}">Veg-friendly only</button></div><div class="lunch">${lunchHtml}</div><p class="small">Picked for where the route puts you at midday. Hours change, so check Google Maps before you go. Fish stock (dashi) hides in many dishes; "Veg options" places need the phrase from Help.</p></section>`:''}
+  <section class="sec"><div class="note"><b>${esc(d.note[0])}</b>${esc(d.note[1])}</div></section>
+  <section class="sec"><h2>${d.stay?'Tonight':'Tonight'}</h2>${d.stay?stayCard(d.stay,d.stayNote):`<div class="stay"><div class="nm">Flights home</div><div class="small">Prabhakar & Anitha on JL 753 (18:25, T2). Berlin group on MS 965 (20:30). Confirm terminals on the e-tickets.</div><div class="actions"><a class="btn primary" href="${maps('成田国際空港')}" target="_blank" rel="noopener">${PIN}Narita Airport</a></div></div>`}</section>
+  <section class="sec"><details class="facts"><summary>Did you know?</summary><dl>${d.facts.map(([a,b])=>`<div><dt>${esc(a)}</dt><dd>${esc(b)}</dd></div>`).join('')}</dl></details></section>
+  <div class="pager">
+    ${prev?`<button class="btn" type="button" data-go="${cur-1}">← ${prev.dow} ${prev.d}</button>`:'<span></span>'}
+    ${next?`<button class="btn" type="button" data-go="${cur+1}">${next.dow} ${next.d} →</button>`:'<span></span>'}
+  </div>`;
+}
+
+function renderStays(){
+  document.documentElement.style.setProperty('--region','var(--accent)');
+  const order=['toyoko','sasameyuki','mystays','daiwa','hoden','kyukamura','mimaru'];
+  $('#main').innerHTML=`<div class="dayhead"><div class="eyebrow">7 stays</div><h1>Where we sleep</h1></div>
+  <div class="list">${order.map(id=>{const s=STAYS[id];return `<div class="row" style="--c:var(--${s.region})">
+    <div class="top2"><div class="nm"><span class="sw"></span>${esc(s.name)}</div><div class="dates">${s.dates}</div></div>
+    <div class="small">${esc(s.addr)}<br><span lang="ja">${esc(s.jp)}</span></div>
+    <div class="small">Check-in ${esc(s.in)} · out ${esc(s.out)} · <span class="phone">${esc(s.tel)}</span></div>
+    <div class="actions"><a class="btn" href="${maps(s.q)}" target="_blank" rel="noopener">${PIN}Maps</a><a class="btn" href="${telHref(s.tel)}">${TEL}Call</a><button class="btn" type="button" data-copy="${esc(s.jp)}">${COPY}Copy JP address</button></div>
+  </div>`}).join('')}</div>`;
+}
+
+
+/* Weather: typical late-October conditions per area (climate averages, not a forecast) plus a live link. */
+const WX={
+  furano:{name:'Furano & Biei',days:'19–21 Oct',region:'hokkaido',q:'Furano weather',hi:'10–14°C',lo:'0–4°C',sun:'Sunset about 16:50',
+    feel:'Crisp and often clear, with frosty mornings. First snow on the Tokachi peaks is possible, and rain comes as cold showers.',
+    wear:'Warm jacket, fleece or down layer, hat and gloves for mornings. Thermal base layer for Prabhakar and Anitha.'},
+  sapporo:{name:'Sapporo',days:'21–22 Oct',region:'hokkaido',q:'Sapporo weather',hi:'12–15°C',lo:'4–7°C',sun:'Sunset about 16:45',
+    feel:'Cool, breezy and changeable, with a passing shower on about one day in three. Evenings feel colder than the number.',
+    wear:'Jacket and a warm layer for the evening walk and the 06:45 start on the 22nd.'},
+  kyoto:{name:'Kyoto & Osaka',days:'22–26 Oct',region:'kyoto',q:'Kyoto weather',hi:'19–22°C',lo:'10–13°C',sun:'Sunset about 17:15',
+    feel:'Mild, mostly dry days, pleasant for walking. Mornings and the river boat can feel cool.',
+    wear:'T-shirt plus a light jacket or cardigan. Good walking shoes for the slopes and temple steps.'},
+  nikko:{name:'Nikko town',days:'26–27 Oct',region:'nikko',q:'Nikko weather',hi:'13–17°C',lo:'4–8°C',sun:'Sunset about 16:55',
+    feel:'Peak autumn colour around the town and Lake Chuzenji. Cool, with mountain showers.',
+    wear:'Warm jacket and layers; a compact umbrella.'},
+  yumoto:{name:'Oku-Nikko & Yumoto',days:'27–28 Oct',region:'nikko',q:'Yumoto Onsen Nikko weather',hi:'7–11°C',lo:'−2 to 3°C',sun:'Sunset about 16:50',
+    feel:'The coldest stop of the trip, about 1,500 m up. Frost likely overnight, and snow flurries are possible.',
+    wear:'Winter coat, hat, gloves and warm socks, especially for the seniors and for the 10:00 departure.'},
+  tokyo:{name:'Tokyo',days:'28 Oct–1 Nov',region:'tokyo',q:'Tokyo weather',hi:'18–21°C',lo:'11–14°C',sun:'Sunset about 16:55',
+    feel:'Mild and mostly settled. Evenings at Shibuya Sky are windy and cool on the open deck.',
+    wear:'Light layers and a jacket for evenings; one warm layer for the rooftop.'}
+};
+const DAYWX={oct17:'tokyo',oct18:'tokyo',oct19:'furano',oct20:'furano',oct21:'sapporo',oct22:'kyoto',oct23:'kyoto',oct24:'kyoto',oct25:'kyoto',oct26:'nikko',oct27:'yumoto',oct28:'tokyo',oct29:'tokyo',oct30:'tokyo',oct31:'tokyo',nov1:'tokyo'};
+const live=q=>'https://www.google.com/search?q='+encodeURIComponent(q);
+
+function renderWeather(){
+  document.documentElement.style.setProperty('--region','var(--accent)');
+  const t=japanDate();
+  const daysOut=Math.round((Date.parse('2026-10-17T00:00:00+09:00')-Date.now())/864e5);
+  const lead=t<'2026-10-17'?`The trip starts in ${daysOut} day${daysOut===1?'':'s'}. Forecasts are reliable about 5–7 days ahead, so tap <b>Live forecast</b> for each place as its dates come closer.`:'Tap <b>Live forecast</b> for the latest from Google Weather.';
+  $('#main').innerHTML=`<div class="dayhead"><div class="eyebrow">Late October</div><h1>Weather &amp; what to wear</h1><p class="intro">${lead}</p></div>
+  <div class="list">${Object.values(WX).map(w=>`<div class="row" style="--c:var(--${w.region})">
+    <div class="top2"><div class="nm"><span class="sw"></span>${esc(w.name)}</div><div class="dates">${w.days}</div></div>
+    <div class="wxnums"><span><b>${w.hi}</b> by day</span><span><b>${w.lo}</b> at night</span><span>${w.sun}</span></div>
+    <div class="small" style="color:var(--ink)">${esc(w.feel)}</div>
+    <div class="small"><b>Wear:</b> ${esc(w.wear)}</div>
+    <div class="actions"><a class="btn" href="${live(w.q)}" target="_blank" rel="noopener">${CLOUD}Live forecast</a></div>
+  </div>`).join('')}</div>
+  <section class="sec"><h2>Pack for all of it</h2><ul class="tips">
+    <li>The trip spans about 20°C: near-freezing mornings in Hokkaido and Yumoto, then T-shirt afternoons in Kyoto. Pack layers rather than one heavy coat.</li>
+    <li>For Prabhakar and Anitha: thermal base layers, a warm hat and gloves, and non-slip shoes for wet temple steps and the Yumoto paths. Uniqlo Heattech is easy to buy on arrival if anything is missing.</li>
+    <li>For Anirudh: a warm hat and gloves for Hokkaido, and a spare top for the teamLab water room.</li>
+    <li>Everyone: a compact umbrella or rain shell. Convenience stores sell cheap clear umbrellas.</li>
+    <li>Late October can still bring a typhoon. If one is forecast, check trains on the JR and Peach apps and keep the 29 Oct flexible day as a swap.</li>
+  </ul>
+  <p class="small" style="margin-top:12px">Temperatures here are typical late-October ranges, not a forecast.</p></section>`;
+}
+
+function renderHelp(){
+  document.documentElement.style.setProperty('--region','var(--accent)');
+  $('#main').innerHTML=`<div class="dayhead"><div class="eyebrow">Quick reference</div><h1>Help &amp; phones</h1></div>
+  <section class="sec"><h2>Emergencies</h2>
+    <div class="sos"><div><b>110</b><span>Police</span></div><div><b>119</b><span>Ambulance / fire</span></div><div><b style="font-size:1rem;line-height:1.9">050-3816-2787</b><span>Visitor hotline, 24 h, English</span></div></div>
+  </section>
+  <section class="sec"><h2>Hotels</h2><table class="tbl">${Object.values(STAYS).map(s=>`<tr><td>${esc(s.name)}<span class="jp">${s.dates}</span></td><td><a class="phone" href="${telHref(s.tel)}">${esc(s.tel)}</a></td></tr>`).join('')}</table></section>
+  <section class="sec"><h2>Car, taxis &amp; support</h2><table class="tbl">${PHONES.map(([a,b,c])=>`<tr><td>${esc(a)}<span class="jp">${esc(b)}</span></td><td><a class="phone" href="${telHref(c)}">${esc(c)}</a></td></tr>`).join('')}</table>
+    <p class="small">Pre-book Nikko Kotsu for 28 Oct around 10:00 (Yumoto → Tobu-Nikko).</p></section>
+  <section class="sec"><h2>Toyoko Inn Narita shuttle</h2>
+    <ul class="tips">
+      <li>Picks up at Terminal 1 (:10, :30, :50, about 20 min ride) and Terminal 2 (:05, :25, :45, about 10 min). Terminal 3 is drop-off only.</li>
+      <li>To the airport on 19 Oct: 07:10 bus (07:30 back-up) to T2, then walk 10 min to T3.</li>
+      <li>Nothing leaves the hotel in the 13:00 hour. Last hotel departure 23:35; last bus to the hotel 00:25 (T2) / 00:30 (T1).</li>
+    </ul></section>
+  <section class="sec"><h2>Useful Japanese</h2><table class="tbl">${PHRASES.map(([e,r,j])=>`<tr><td>${esc(e)}<span class="jp">${esc(r)}</span></td><td lang="ja">${esc(j)}</td></tr>`).join('')}</table></section>
+  <section class="sec"><h2>Everyday tips</h2><ul class="tips">
+    <li>Cards work in hotels and big shops; shrines, small restaurants and buses often want cash. 7-Eleven and Japan Post ATMs take foreign cards.</li>
+    <li>Add Suica or Pasmo to your phone wallet to tap through trains, buses and vending machines.</li>
+    <li>Fish stock (dashi) hides in many dishes. Use the phrases above and look for shojin ryori and tofu restaurants.</li>
+    <li>Quiet on trains, phones on silent. No tipping. Carry your rubbish; bins are rare.</li>
+    <li>Shoes off where there's a step up or tatami. Onsen: wash first, no swimsuits, towels out of the water.</li>
+    <li>Stand left on Tokyo escalators, right in Kyoto and Osaka.</li>
+    <li>Power is 100 V, two flat pins (Type A). Check hair dryers and kettles.</li>
+    <li>Tokyo is 7 h ahead of Berlin until 25 Oct, then 8 h. Always 3 h 30 m ahead of Bengaluru.</li>
+  </ul></section>
+  <p class="small" style="margin-top:22px">Booking numbers, seats and payments are in the family PDF, not here.</p>`;
+}
+
+function renderStrip(){
+  $('#strip').hidden=view!=='day';
+  $('#strip').innerHTML=DAYS.map((d,i)=>`<button class="chip${i===tIdx?' today':''}" type="button" data-go="${i}" aria-pressed="${i===cur}" style="--c:var(--${d.region})" aria-label="${d.dow} ${d.d} ${d.m===10?'October':'November'}, ${REG[d.region]}"><span class="dw">${d.dow}</span><span class="dn">${d.d}</span><span class="bar"></span></button>`).join('');
+}
+function render(scroll){
+  document.querySelectorAll('.tabs button').forEach(b=>b.setAttribute('aria-selected',b.dataset.view===view));
+  renderStrip();
+  if(view==='day')renderDay(); else if(view==='stays')renderStays(); else if(view==='weather')renderWeather(); else renderHelp();
+  if(view==='day'){const c=document.querySelector('.chip[aria-pressed="true"]'); if(c)c.scrollIntoView({inline:'center',block:'nearest'});}
+  if(scroll)window.scrollTo({top:0});
+}
+
+let toastT;
+function toast(m){const t=$('#toast');t.textContent=m;t.hidden=false;clearTimeout(toastT);toastT=setTimeout(()=>t.hidden=true,1800);}
+
+document.addEventListener('click',e=>{
+  const go=e.target.closest('[data-go]'); if(go){cur=+go.dataset.go;view='day';render(true);return;}
+  const tab=e.target.closest('[data-view]'); if(tab){view=tab.dataset.view;render(true);return;}
+  if(e.target.closest('#vegtoggle')){vegOnly=!vegOnly;try{localStorage.setItem('vegOnly',vegOnly?'1':'0')}catch(err){};renderDay();return;}
+  const cp=e.target.closest('[data-copy]'); if(cp){
+    const txt=cp.dataset.copy;
+    (navigator.clipboard?navigator.clipboard.writeText(txt):Promise.reject()).then(()=>toast('Address copied. Show it to the driver.'),()=>toast(txt));
+  }
+});
+
+// start: hash deep-link (e.g. #oct24, #stays, #help), else today's Japan date, else first/last day
+(function init(){
+  const h=location.hash.slice(1);
+  const hi=DAYS.findIndex(d=>key(d)===h);
+  if(h==='stays'||h==='help'||h==='weather')view=h;
+  if(hi>=0)cur=hi;
+  else if(tIdx>=0)cur=tIdx;
+  else cur=japanDate()>'2026-11-01'?DAYS.length-1:0;
+  tick();setInterval(tick,30000);
+  render(false);
+})();
+</script>
+
+<script>
+if('serviceWorker' in navigator){window.addEventListener('load',()=>navigator.serviceWorker.register('sw.js').catch(()=>{}));}
+</script>
+</body></html>
