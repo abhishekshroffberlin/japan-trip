@@ -952,7 +952,7 @@ async function openPack(save){
     const a=document.createElement('a');a.href=packURL;
     if(save)a.download='Japan_Family_Trip_2026.pdf';else a.target='_blank';
     document.body.appendChild(a);a.click();a.remove();msg.textContent='';
-  }catch(err){msg.textContent=err.message==='locked'?'Unlock Tickets first.':'The PDF could not be opened. Open the app once with internet so it can download.';}
+  }catch(err){msg.textContent=err.message==='locked'?'Unlock Tickets first.':'The PDF could not be opened here. Use the phone app (abhishekshroffberlin.github.io/japan-trip), opened once with internet.';}
 }
 function showQR(t){
   const o=document.createElement('div');o.className='overlay qr';o.setAttribute('role','dialog');o.setAttribute('aria-modal','true');
