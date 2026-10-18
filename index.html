@@ -207,6 +207,23 @@ details.facts[open] summary::before{content:"－ "}
 .tips{margin:0;padding-left:18px;display:grid;gap:6px;font-size:.92rem}
 .small{font-size:.8rem;color:var(--muted)}
 .toast{position:fixed;left:50%;bottom:calc(20px + env(safe-area-inset-bottom,0px));transform:translateX(-50%);background:var(--ink);color:var(--paper);padding:8px 14px;border-radius:8px;font-size:.85rem;z-index:9}
+.expform{border:1px solid var(--line);background:var(--card);border-radius:14px;padding:14px;display:grid;gap:10px}
+.expform label{display:grid;gap:4px;font-size:.8rem;color:var(--muted)}
+.expform input,.expform select,.expimp textarea{font:inherit;font-size:16px;padding:9px 10px;border:1px solid var(--line);border-radius:10px;background:var(--paper);color:var(--ink);width:100%;box-sizing:border-box}
+.expform .amt{display:grid;grid-template-columns:5rem 1fr;gap:8px}
+.pills{display:flex;flex-wrap:wrap;gap:6px}
+.pill{font:inherit;text-transform:none;letter-spacing:0;font-size:.85rem;padding:6px 11px;border-radius:999px;border:1px solid var(--line);background:var(--paper);color:var(--ink);cursor:pointer}
+.pill[aria-pressed="true"]{background:var(--ink);color:var(--paper);border-color:var(--ink)}
+.exptot{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.exptot div{border:1px solid var(--line);background:var(--card);border-radius:12px;padding:10px 12px}
+.exptot b{display:block;font-size:1.3rem;font-variant-numeric:tabular-nums}
+.explist{list-style:none;margin:0;padding:0}
+.explist li{display:grid;grid-template-columns:1fr auto;gap:2px 10px;padding:9px 0;border-bottom:1px solid var(--line);align-items:center}
+.explist .am{font-variant-numeric:tabular-nums;font-weight:600;text-align:right}
+.explist .meta{font-size:.78rem;color:var(--muted)}
+.explist .acts{grid-column:1/-1;display:flex;gap:8px}
+.explist .acts button{font:inherit;font-size:.75rem;padding:2px 8px;border-radius:6px;border:1px solid var(--line);background:none;color:var(--muted);cursor:pointer}
+.expimp textarea{min-height:5rem}
 @media (prefers-reduced-motion:no-preference){.chip{transition:background .15s,color .15s}}
 </style>
 </head><body>
@@ -222,6 +239,7 @@ details.facts[open] summary::before{content:"－ "}
       <button role="tab" id="tab-stays" aria-selected="false" data-view="stays">Stays</button>
       <button role="tab" id="tab-weather" aria-selected="false" data-view="weather">Weather</button>
       <button role="tab" id="tab-tickets" aria-selected="false" data-view="tickets">Tickets</button>
+      <button role="tab" id="tab-spend" aria-selected="false" data-view="spend">Spend</button>
       <button role="tab" id="tab-tools" aria-selected="false" data-view="tools">Tools</button>
       <button role="tab" id="tab-help" aria-selected="false" data-view="help">Help</button>
     </div>
@@ -872,7 +890,7 @@ function renderStrip(){
 function render(scroll){
   document.querySelectorAll('.tabs button').forEach(b=>b.setAttribute('aria-selected',b.dataset.view===view));
   renderStrip();
-  if(view==='day')renderDay(); else if(view==='stays')renderStays(); else if(view==='weather')renderWeather(); else if(view==='tools')renderTools(); else if(view==='tickets')renderTickets(); else renderHelp();
+  if(view==='day')renderDay(); else if(view==='stays')renderStays(); else if(view==='weather')renderWeather(); else if(view==='tools')renderTools(); else if(view==='tickets')renderTickets(); else if(view==='spend')renderSpend(); else renderHelp();
   if(view==='day'&&TICKET_DAYS.includes(key(DAYS[cur]))){$('#main').insertAdjacentHTML('afterbegin',`<button class="tkjump" type="button" data-tkday="${key(DAYS[cur])}">🎫 Tickets &amp; QR codes for this day</button>`);}
   if(view==='day'){const c=document.querySelector('.chip[aria-pressed="true"]'); if(c)c.scrollIntoView({inline:'center',block:'nearest'});}
   if(scroll)window.scrollTo({top:0});
@@ -969,6 +987,109 @@ document.addEventListener('submit',async e=>{
 (async()=>{let p=null;try{p=localStorage.getItem('tkpass')}catch(e){}
   if(p&&TICKETS_BLOB){try{await unlockTickets(p);if(view==='tickets')renderTickets();}catch(e){try{localStorage.removeItem('tkpass')}catch(_){}}}})();
 
+
+/* ---- Spend: expense log saved on this phone, shared as a text code ---- */
+const PEOPLE=['Abhishek','Aparna','Akhila','Anirudh','Prabhakar','Anitha'];
+const ECATS=['Food','Transport','Sights','Shopping','Hotel','Other'];
+const ECUR={jpy:'¥',eur:'€',usd:'$',inr:'₹'};
+let EXP=[],EXPDEL=[],expMe='',expCat='Food',expEdit=null,expDelAsk=null;
+try{EXP=JSON.parse(localStorage.getItem('expenses')||'[]');EXPDEL=JSON.parse(localStorage.getItem('expDel')||'[]');expMe=localStorage.getItem('expMe')||'';}catch(e){}
+function saveExp(){try{localStorage.setItem('expenses',JSON.stringify(EXP));localStorage.setItem('expDel',JSON.stringify(EXPDEL));}catch(e){toast('Could not save on this phone');}}
+const yen=n=>'¥'+fmt(Math.round(n),0);
+const dayLabel=d=>new Date(d+'T12:00:00Z').toLocaleDateString('en-GB',{weekday:'short',day:'numeric',month:'short',timeZone:'UTC'});
+function renderSpend(){
+  document.documentElement.style.setProperty('--region','var(--accent)');
+  const ed=expEdit?EXP.find(x=>x.id===expEdit):null;
+  const by=ed?ed.by:expMe, cat=ed?ed.cat:expCat;
+  const total=EXP.reduce((a,x)=>a+x.yen,0);
+  const today=japanDate();
+  const tdy=EXP.filter(x=>x.date===today).reduce((a,x)=>a+x.yen,0);
+  const sumBy=k=>{const m={};EXP.forEach(x=>m[x[k]]=(m[x[k]]||0)+x.yen);return Object.entries(m).sort((a,b)=>b[1]-a[1]);};
+  const days=[...new Set(EXP.map(x=>x.date))].sort().reverse();
+  $('#main').innerHTML=`<div class="dayhead"><div class="eyebrow">Spend</div><h1>Expenses</h1></div>
+  <p class="small">Saved on this phone and works offline. To put the family's lists together, use <b>Share my list</b> below and paste it into the other phone.</p>
+  <form class="expform" id="expform" autocomplete="off">
+    <div><div class="small" style="margin-bottom:4px">Who paid</div><div class="pills">${PEOPLE.map(n=>`<button class="pill" type="button" data-expby="${n}" aria-pressed="${n===by}">${n}</button>`).join('')}</div></div>
+    <div class="amt"><label>Currency<select id="ex-cur">${Object.entries(ECUR).map(([k,v])=>`<option value="${k}"${(ed?ed.cur:'jpy')===k?' selected':''}>${v}</option>`).join('')}</select></label>
+      <label>Amount<input id="ex-amt" inputmode="decimal" placeholder="0" value="${ed?ed.amt:''}"></label></div>
+    <label>What for<input id="ex-what" placeholder="e.g. Lunch at Nishiki market" maxlength="80" value="${ed?esc(ed.what):''}"></label>
+    <div><div class="small" style="margin-bottom:4px">Type</div><div class="pills">${ECATS.map(c=>`<button class="pill" type="button" data-expcat="${c}" aria-pressed="${c===cat}">${c}</button>`).join('')}</div></div>
+    <label>Date<input id="ex-date" type="date" min="2026-10-17" max="2026-11-01" value="${ed?ed.date:(today>='2026-10-17'&&today<='2026-11-01'?today:'2026-10-17')}"></label>
+    <div style="display:flex;gap:10px;flex-wrap:wrap"><button class="btn" type="submit" style="background:var(--ink);color:var(--paper);border-color:var(--ink)">${ed?'Save changes':'Add expense'}</button>${ed?'<button class="btn" type="button" data-expcancel>Cancel</button>':''}</div>
+    <p class="small" id="exmsg" role="status" style="margin:0"></p>
+  </form>
+  <section class="sec"><h2>Totals</h2>
+    <div class="exptot"><div><span class="small">Whole trip</span><b>${yen(total)}</b><span class="small">€${fmt(total/RATE.eur,0)} · ₹${fmt(total/RATE.inr,0)}</span></div>
+    <div><span class="small">Today</span><b>${yen(tdy)}</b><span class="small">€${fmt(tdy/RATE.eur,0)} · ₹${fmt(tdy/RATE.inr,0)}</span></div></div>
+    ${EXP.length?`<table class="qtab" style="margin-top:12px"><thead><tr><th>Paid by</th><th>Yen</th><th>Euro</th></tr></thead><tbody>${sumBy('by').map(([k,v])=>`<tr><td>${esc(k)}</td><td>${yen(v)}</td><td>€${fmt(v/RATE.eur,0)}</td></tr>`).join('')}</tbody></table>
+    <table class="qtab" style="margin-top:12px"><thead><tr><th>Type</th><th>Yen</th><th>Euro</th></tr></thead><tbody>${sumBy('cat').map(([k,v])=>`<tr><td>${esc(k)}</td><td>${yen(v)}</td><td>€${fmt(v/RATE.eur,0)}</td></tr>`).join('')}</tbody></table>`:''}
+  </section>
+  <section class="sec"><h2>All expenses</h2>
+    ${EXP.length?days.map(d=>{const xs=EXP.filter(x=>x.date===d).sort((a,b)=>b.ts-a.ts);return `<h3 style="font-size:.9rem;margin:14px 0 0">${dayLabel(d)} <span class="small">· ${yen(xs.reduce((a,x)=>a+x.yen,0))}</span></h3><ul class="explist">${xs.map(x=>`<li><span>${esc(x.what||x.cat)}</span><span class="am">${yen(x.yen)}</span><span class="meta">${esc(x.by)} · ${esc(x.cat)}${x.cur!=='jpy'?` · paid ${ECUR[x.cur]}${fmt(x.amt,2)}`:''}</span><span></span><span class="acts"><button type="button" data-expedit="${x.id}">Edit</button><button type="button" data-expdel="${x.id}">${expDelAsk===x.id?'Tap again to delete':'Delete'}</button></span></li>`).join('')}</ul>`}).join(''):'<p class="small">Nothing yet. Add the first expense above.</p>'}
+  </section>
+  <section class="sec"><h2>Put lists together</h2>
+    <p class="small" style="margin-top:0">Share sends your whole list as a message (WhatsApp, iMessage). On the other phone, copy that message, paste it below and tap Add. Entries already there are skipped, so sharing twice is fine.</p>
+    <div style="display:flex;gap:10px;flex-wrap:wrap"><button class="btn" type="button" data-expshare ${EXP.length?'':'disabled'}>Share my list</button><button class="btn" type="button" data-expcsv ${EXP.length?'':'disabled'}>Download spreadsheet (CSV)</button></div>
+    <div class="expimp" style="margin-top:12px;display:grid;gap:8px"><label for="ex-imp" class="small">Paste a shared list</label><textarea id="ex-imp" placeholder="Paste the whole message here"></textarea><div><button class="btn" type="button" data-expimp>Add to my list</button></div></div>
+  </section>`;
+}
+const b64e=s=>btoa(Array.from(new TextEncoder().encode(s),c=>String.fromCharCode(c)).join('')).replace(/\+/g,'-').replace(/\//g,'_').replace(/=+$/,'');
+const b64d=s=>new TextDecoder().decode(Uint8Array.from(atob(s.replace(/-/g,'+').replace(/_/g,'/')),c=>c.charCodeAt(0)));
+function expShareText(){
+  const total=EXP.reduce((a,x)=>a+x.yen,0);
+  const code=b64e(JSON.stringify(EXP.map(x=>[x.id,x.by,x.amt,x.cur,x.yen,x.what,x.cat,x.date,x.ts])));
+  return `Japan trip expenses: ${EXP.length} entries, ${yen(total)} in total.\nTo add them, open the Japan 2026 app, go to Spend and paste this whole message.\nJPX1.${code}.END`;
+}
+function expImport(txt){
+  const m=/JPX1\.([A-Za-z0-9_-]+)\.END/.exec(txt.replace(/\s+/g,''));
+  if(!m)return 'That doesn\'t look like a shared expense list. Paste the whole message.';
+  let rows;try{rows=JSON.parse(b64d(m[1]));}catch(e){return 'The pasted list is incomplete. Copy the whole message again.';}
+  const have=new Set(EXP.map(x=>x.id).concat(EXPDEL));let n=0;
+  rows.forEach(r=>{if(!Array.isArray(r)||have.has(r[0]))return;const yv=+r[4];if(!(yv>=0))return;
+    EXP.push({id:String(r[0]),by:String(r[1]),amt:+r[2],cur:ECUR[r[3]]?r[3]:'jpy',yen:yv,what:String(r[5]||''),cat:String(r[6]||'Other'),date:String(r[7]),ts:+r[8]||Date.now()});have.add(r[0]);n++;});
+  saveExp();return n?`Added ${n} new ${n===1?'entry':'entries'}.`:'Nothing new: you already had all of these.';
+}
+function expCSV(){
+  const q=v=>'"'+String(v).replace(/"/g,'""')+'"';
+  const rows=[['Date','Paid by','What','Type','Amount','Currency','Yen']].concat([...EXP].sort((a,b)=>a.date<b.date?-1:a.date>b.date?1:a.ts-b.ts).map(x=>[x.date,x.by,x.what,x.cat,x.amt,x.cur.toUpperCase(),Math.round(x.yen)]));
+  const blob=new Blob(['﻿'+rows.map(r=>r.map(q).join(',')).join('\r\n')],{type:'text/csv'});
+  const f=new File([blob],'japan-trip-expenses.csv',{type:'text/csv'});
+  if(navigator.canShare&&navigator.canShare({files:[f]})){navigator.share({files:[f]}).catch(()=>{});return;}
+  const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download='japan-trip-expenses.csv';document.body.appendChild(a);a.click();a.remove();
+}
+document.addEventListener('submit',e=>{
+  if(e.target.id!=='expform')return;e.preventDefault();
+  const msg=t=>{$('#exmsg').textContent=t;};
+  const by=(document.querySelector('[data-expby][aria-pressed="true"]')||{}).dataset;
+  const cat=(document.querySelector('[data-expcat][aria-pressed="true"]')||{}).dataset;
+  const cur=$('#ex-cur').value, amt=parseFloat($('#ex-amt').value.replace(/[^\d.]/g,''));
+  const date=$('#ex-date').value;
+  if(!by||!by.expby)return msg('Tap who paid.');
+  if(!(amt>0))return msg('Type the amount.');
+  if(!date)return msg('Pick the date.');
+  const y=cur==='jpy'?amt:amt*RATE[cur];
+  const rec={by:by.expby,amt,cur,yen:Math.round(y),what:$('#ex-what').value.trim(),cat:cat?cat.expcat:'Other',date};
+  if(expEdit){const x=EXP.find(x=>x.id===expEdit);if(x)Object.assign(x,rec);expEdit=null;toast('Saved');}
+  else{EXP.push({id:Date.now().toString(36)+Math.random().toString(36).slice(2,7),ts:Date.now(),...rec});toast('Added '+yen(rec.yen));}
+  expMe=rec.by;expCat=rec.cat;try{localStorage.setItem('expMe',expMe)}catch(err){}
+  saveExp();renderSpend();
+});
+document.addEventListener('click',e=>{
+  if(view!=='spend')return;
+  const p=e.target.closest('[data-expby],[data-expcat]');
+  if(p){const k=p.dataset.expby?'expby':'expcat';document.querySelectorAll('[data-'+k+']').forEach(b=>b.setAttribute('aria-pressed',b===p));return;}
+  const ed=e.target.closest('[data-expedit]');if(ed){expEdit=ed.dataset.expedit;expDelAsk=null;renderSpend();window.scrollTo(0,0);return;}
+  if(e.target.closest('[data-expcancel]')){expEdit=null;renderSpend();return;}
+  const dl=e.target.closest('[data-expdel]');if(dl){const id=dl.dataset.expdel;
+    if(expDelAsk!==id){expDelAsk=id;dl.textContent='Tap again to delete';return;}
+    EXP=EXP.filter(x=>x.id!==id);EXPDEL.push(id);expDelAsk=null;if(expEdit===id)expEdit=null;saveExp();renderSpend();toast('Deleted');return;}
+  if(e.target.closest('[data-expshare]')){const t=expShareText();
+    if(navigator.share)navigator.share({text:t}).catch(()=>{});
+    else (navigator.clipboard?navigator.clipboard.writeText(t):Promise.reject()).then(()=>toast('Copied. Paste it into a message.'),()=>{$('#ex-imp').value=t;toast('Copy the text in the box');});
+    return;}
+  if(e.target.closest('[data-expcsv]')){expCSV();return;}
+  if(e.target.closest('[data-expimp]')){const r=expImport($('#ex-imp').value);if(r.startsWith('Added'))renderSpend();toast(r);return;}
+});
 let toastT;
 function toast(m){const t=$('#toast');t.textContent=m;t.hidden=false;clearTimeout(toastT);toastT=setTimeout(()=>t.hidden=true,1800);}
 
@@ -995,7 +1116,7 @@ document.addEventListener('click',e=>{
 (function init(){
   const h=location.hash.slice(1);
   const hi=DAYS.findIndex(d=>key(d)===h);
-  if(h==='stays'||h==='help'||h==='weather'||h==='tools'||h==='tickets')view=h;
+  if(h==='stays'||h==='help'||h==='weather'||h==='tools'||h==='tickets'||h==='spend')view=h;
   if(hi>=0)cur=hi;
   else if(tIdx>=0)cur=tIdx;
   else cur=japanDate()>'2026-11-01'?DAYS.length-1:0;
