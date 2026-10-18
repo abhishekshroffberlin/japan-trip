@@ -992,15 +992,15 @@ document.addEventListener('submit',async e=>{
 const PEOPLE=['Abhishek','Aparna','Akhila','Anirudh','Prabhakar','Anitha'];
 const ECATS=['Food','Transport','Sights','Shopping','Hotel','Other'];
 const ECUR={jpy:'¥',eur:'€',usd:'$',inr:'₹'};
-let EXP=[],EXPDEL=[],expMe='',expCat='Food',expEdit=null,expDelAsk=null;
-try{EXP=JSON.parse(localStorage.getItem('expenses')||'[]');EXPDEL=JSON.parse(localStorage.getItem('expDel')||'[]');expMe=localStorage.getItem('expMe')||'';}catch(e){}
+let EXP=[],EXPDEL=[],expMe='',expCat='Food',expPay='Cash',expEdit=null,expDelAsk=null;
+try{EXP=JSON.parse(localStorage.getItem('expenses')||'[]');EXPDEL=JSON.parse(localStorage.getItem('expDel')||'[]');expMe=localStorage.getItem('expMe')||'';expPay=localStorage.getItem('expPay')||'Cash';}catch(e){}
 function saveExp(){try{localStorage.setItem('expenses',JSON.stringify(EXP));localStorage.setItem('expDel',JSON.stringify(EXPDEL));}catch(e){toast('Could not save on this phone');}}
 const yen=n=>'¥'+fmt(Math.round(n),0);
 const dayLabel=d=>new Date(d+'T12:00:00Z').toLocaleDateString('en-GB',{weekday:'short',day:'numeric',month:'short',timeZone:'UTC'});
 function renderSpend(){
   document.documentElement.style.setProperty('--region','var(--accent)');
   const ed=expEdit?EXP.find(x=>x.id===expEdit):null;
-  const by=ed?ed.by:expMe, cat=ed?ed.cat:expCat;
+  const by=ed?ed.by:expMe, cat=ed?ed.cat:expCat, pay=ed?(ed.pay||'Cash'):expPay;
   const total=EXP.reduce((a,x)=>a+x.yen,0);
   const today=japanDate();
   const tdy=EXP.filter(x=>x.date===today).reduce((a,x)=>a+x.yen,0);
@@ -1012,6 +1012,7 @@ function renderSpend(){
     <div><div class="small" style="margin-bottom:4px">Who paid</div><div class="pills">${PEOPLE.map(n=>`<button class="pill" type="button" data-expby="${n}" aria-pressed="${n===by}">${n}</button>`).join('')}</div></div>
     <div class="amt"><label>Currency<select id="ex-cur">${Object.entries(ECUR).map(([k,v])=>`<option value="${k}"${(ed?ed.cur:'jpy')===k?' selected':''}>${v}</option>`).join('')}</select></label>
       <label>Amount<input id="ex-amt" inputmode="decimal" placeholder="0" value="${ed?ed.amt:''}"></label></div>
+    <div><div class="small" style="margin-bottom:4px">Paid with</div><div class="pills">${['Cash','Card'].map(c=>`<button class="pill" type="button" data-exppay="${c}" aria-pressed="${c===pay}">${c}</button>`).join('')}</div></div>
     <label>What for<input id="ex-what" placeholder="e.g. Lunch at Nishiki market" maxlength="80" value="${ed?esc(ed.what):''}"></label>
     <div><div class="small" style="margin-bottom:4px">Type</div><div class="pills">${ECATS.map(c=>`<button class="pill" type="button" data-expcat="${c}" aria-pressed="${c===cat}">${c}</button>`).join('')}</div></div>
     <label>Date<input id="ex-date" type="date" min="2026-10-17" max="2026-11-01" value="${ed?ed.date:(today>='2026-10-17'&&today<='2026-11-01'?today:'2026-10-17')}"></label>
@@ -1022,10 +1023,11 @@ function renderSpend(){
     <div class="exptot"><div><span class="small">Whole trip</span><b>${yen(total)}</b><span class="small">€${fmt(total/RATE.eur,0)} · ₹${fmt(total/RATE.inr,0)}</span></div>
     <div><span class="small">Today</span><b>${yen(tdy)}</b><span class="small">€${fmt(tdy/RATE.eur,0)} · ₹${fmt(tdy/RATE.inr,0)}</span></div></div>
     ${EXP.length?`<table class="qtab" style="margin-top:12px"><thead><tr><th>Paid by</th><th>Yen</th><th>Euro</th></tr></thead><tbody>${sumBy('by').map(([k,v])=>`<tr><td>${esc(k)}</td><td>${yen(v)}</td><td>€${fmt(v/RATE.eur,0)}</td></tr>`).join('')}</tbody></table>
+    <table class="qtab" style="margin-top:12px"><thead><tr><th>Paid with</th><th>Yen</th><th>Euro</th></tr></thead><tbody>${sumBy('pay').map(([k,v])=>`<tr><td>${esc(k)}</td><td>${yen(v)}</td><td>€${fmt(v/RATE.eur,0)}</td></tr>`).join('')}</tbody></table>
     <table class="qtab" style="margin-top:12px"><thead><tr><th>Type</th><th>Yen</th><th>Euro</th></tr></thead><tbody>${sumBy('cat').map(([k,v])=>`<tr><td>${esc(k)}</td><td>${yen(v)}</td><td>€${fmt(v/RATE.eur,0)}</td></tr>`).join('')}</tbody></table>`:''}
   </section>
   <section class="sec"><h2>All expenses</h2>
-    ${EXP.length?days.map(d=>{const xs=EXP.filter(x=>x.date===d).sort((a,b)=>b.ts-a.ts);return `<h3 style="font-size:.9rem;margin:14px 0 0">${dayLabel(d)} <span class="small">· ${yen(xs.reduce((a,x)=>a+x.yen,0))}</span></h3><ul class="explist">${xs.map(x=>`<li><span>${esc(x.what||x.cat)}</span><span class="am">${yen(x.yen)}</span><span class="meta">${esc(x.by)} · ${esc(x.cat)}${x.cur!=='jpy'?` · paid ${ECUR[x.cur]}${fmt(x.amt,2)}`:''}</span><span></span><span class="acts"><button type="button" data-expedit="${x.id}">Edit</button><button type="button" data-expdel="${x.id}">${expDelAsk===x.id?'Tap again to delete':'Delete'}</button></span></li>`).join('')}</ul>`}).join(''):'<p class="small">Nothing yet. Add the first expense above.</p>'}
+    ${EXP.length?days.map(d=>{const xs=EXP.filter(x=>x.date===d).sort((a,b)=>b.ts-a.ts);return `<h3 style="font-size:.9rem;margin:14px 0 0">${dayLabel(d)} <span class="small">· ${yen(xs.reduce((a,x)=>a+x.yen,0))}</span></h3><ul class="explist">${xs.map(x=>`<li><span>${esc(x.what||x.cat)}</span><span class="am">${yen(x.yen)}</span><span class="meta">${esc(x.by)} · ${esc(x.pay||'Cash')} · ${esc(x.cat)}${x.cur!=='jpy'?` · paid ${ECUR[x.cur]}${fmt(x.amt,2)}`:''}</span><span></span><span class="acts"><button type="button" data-expedit="${x.id}">Edit</button><button type="button" data-expdel="${x.id}">${expDelAsk===x.id?'Tap again to delete':'Delete'}</button></span></li>`).join('')}</ul>`}).join(''):'<p class="small">Nothing yet. Add the first expense above.</p>'}
   </section>
   <section class="sec"><h2>Put lists together</h2>
     <p class="small" style="margin-top:0">Share sends your whole list as a message (WhatsApp, iMessage). On the other phone, copy that message, paste it below and tap Add. Entries already there are skipped, so sharing twice is fine.</p>
@@ -1037,7 +1039,7 @@ const b64e=s=>btoa(Array.from(new TextEncoder().encode(s),c=>String.fromCharCode
 const b64d=s=>new TextDecoder().decode(Uint8Array.from(atob(s.replace(/-/g,'+').replace(/_/g,'/')),c=>c.charCodeAt(0)));
 function expShareText(){
   const total=EXP.reduce((a,x)=>a+x.yen,0);
-  const code=b64e(JSON.stringify(EXP.map(x=>[x.id,x.by,x.amt,x.cur,x.yen,x.what,x.cat,x.date,x.ts])));
+  const code=b64e(JSON.stringify(EXP.map(x=>[x.id,x.by,x.amt,x.cur,x.yen,x.what,x.cat,x.date,x.ts,x.pay||'Cash'])));
   return `Japan trip expenses: ${EXP.length} entries, ${yen(total)} in total.\nTo add them, open the Japan 2026 app, go to Spend and paste this whole message.\nJPX1.${code}.END`;
 }
 function expImport(txt){
@@ -1046,12 +1048,12 @@ function expImport(txt){
   let rows;try{rows=JSON.parse(b64d(m[1]));}catch(e){return 'The pasted list is incomplete. Copy the whole message again.';}
   const have=new Set(EXP.map(x=>x.id).concat(EXPDEL));let n=0;
   rows.forEach(r=>{if(!Array.isArray(r)||have.has(r[0]))return;const yv=+r[4];if(!(yv>=0))return;
-    EXP.push({id:String(r[0]),by:String(r[1]),amt:+r[2],cur:ECUR[r[3]]?r[3]:'jpy',yen:yv,what:String(r[5]||''),cat:String(r[6]||'Other'),date:String(r[7]),ts:+r[8]||Date.now()});have.add(r[0]);n++;});
+    EXP.push({id:String(r[0]),by:String(r[1]),amt:+r[2],cur:ECUR[r[3]]?r[3]:'jpy',yen:yv,what:String(r[5]||''),cat:String(r[6]||'Other'),date:String(r[7]),ts:+r[8]||Date.now(),pay:r[9]==='Card'?'Card':'Cash'});have.add(r[0]);n++;});
   saveExp();return n?`Added ${n} new ${n===1?'entry':'entries'}.`:'Nothing new: you already had all of these.';
 }
 function expCSV(){
   const q=v=>'"'+String(v).replace(/"/g,'""')+'"';
-  const rows=[['Date','Paid by','What','Type','Amount','Currency','Yen']].concat([...EXP].sort((a,b)=>a.date<b.date?-1:a.date>b.date?1:a.ts-b.ts).map(x=>[x.date,x.by,x.what,x.cat,x.amt,x.cur.toUpperCase(),Math.round(x.yen)]));
+  const rows=[['Date','Paid by','Cash or card','What','Type','Amount','Currency','Yen']].concat([...EXP].sort((a,b)=>a.date<b.date?-1:a.date>b.date?1:a.ts-b.ts).map(x=>[x.date,x.by,x.pay||'Cash',x.what,x.cat,x.amt,x.cur.toUpperCase(),Math.round(x.yen)]));
   const blob=new Blob(['﻿'+rows.map(r=>r.map(q).join(',')).join('\r\n')],{type:'text/csv'});
   const f=new File([blob],'japan-trip-expenses.csv',{type:'text/csv'});
   if(navigator.canShare&&navigator.canShare({files:[f]})){navigator.share({files:[f]}).catch(()=>{});return;}
@@ -1062,22 +1064,23 @@ document.addEventListener('submit',e=>{
   const msg=t=>{$('#exmsg').textContent=t;};
   const by=(document.querySelector('[data-expby][aria-pressed="true"]')||{}).dataset;
   const cat=(document.querySelector('[data-expcat][aria-pressed="true"]')||{}).dataset;
+  const pay=(document.querySelector('[data-exppay][aria-pressed="true"]')||{}).dataset;
   const cur=$('#ex-cur').value, amt=parseFloat($('#ex-amt').value.replace(/[^\d.]/g,''));
   const date=$('#ex-date').value;
   if(!by||!by.expby)return msg('Tap who paid.');
   if(!(amt>0))return msg('Type the amount.');
   if(!date)return msg('Pick the date.');
   const y=cur==='jpy'?amt:amt*RATE[cur];
-  const rec={by:by.expby,amt,cur,yen:Math.round(y),what:$('#ex-what').value.trim(),cat:cat?cat.expcat:'Other',date};
+  const rec={by:by.expby,amt,cur,yen:Math.round(y),what:$('#ex-what').value.trim(),cat:cat?cat.expcat:'Other',pay:pay&&pay.exppay||'Cash',date};
   if(expEdit){const x=EXP.find(x=>x.id===expEdit);if(x)Object.assign(x,rec);expEdit=null;toast('Saved');}
   else{EXP.push({id:Date.now().toString(36)+Math.random().toString(36).slice(2,7),ts:Date.now(),...rec});toast('Added '+yen(rec.yen));}
-  expMe=rec.by;expCat=rec.cat;try{localStorage.setItem('expMe',expMe)}catch(err){}
+  expMe=rec.by;expCat=rec.cat;expPay=rec.pay;try{localStorage.setItem('expMe',expMe);localStorage.setItem('expPay',expPay)}catch(err){}
   saveExp();renderSpend();
 });
 document.addEventListener('click',e=>{
   if(view!=='spend')return;
-  const p=e.target.closest('[data-expby],[data-expcat]');
-  if(p){const k=p.dataset.expby?'expby':'expcat';document.querySelectorAll('[data-'+k+']').forEach(b=>b.setAttribute('aria-pressed',b===p));return;}
+  const p=e.target.closest('[data-expby],[data-expcat],[data-exppay]');
+  if(p){const k=p.dataset.expby?'expby':p.dataset.expcat?'expcat':'exppay';document.querySelectorAll('[data-'+k+']').forEach(b=>b.setAttribute('aria-pressed',b===p));return;}
   const ed=e.target.closest('[data-expedit]');if(ed){expEdit=ed.dataset.expedit;expDelAsk=null;renderSpend();window.scrollTo(0,0);return;}
   if(e.target.closest('[data-expcancel]')){expEdit=null;renderSpend();return;}
   const dl=e.target.closest('[data-expdel]');if(dl){const id=dl.dataset.expdel;
