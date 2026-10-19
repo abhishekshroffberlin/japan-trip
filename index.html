@@ -908,6 +908,8 @@ async function unlockTickets(pass){
   const pt=await crypto.subtle.decrypt({name:'AES-GCM',iv:u8(b.v)},k,u8(b.c));
   TK=JSON.parse(new TextDecoder().decode(pt));
   TKPASS=normPass(pass);
+  try{const pb=PAID_BLOB,k1=await crypto.subtle.deriveKey({name:'PBKDF2',salt:u8(pb.s),iterations:pb.i,hash:'SHA-256'},k0,{name:'AES-GCM',length:256},false,['decrypt']);
+    PAID=JSON.parse(new TextDecoder().decode(await crypto.subtle.decrypt({name:'AES-GCM',iv:u8(pb.v)},k1,u8(pb.c))));}catch(e){PAID=null;}
 }
 function renderTickets(){
   document.documentElement.style.setProperty('--region','var(--accent)');
@@ -992,6 +994,8 @@ document.addEventListener('submit',async e=>{
 const PEOPLE=['Abhishek','Aparna','Akhila','Anirudh','Prabhakar','Anitha'];
 const ECATS=['Food','Transport','Sights','Shopping','Hotel','Other'];
 const ECUR={jpy:'¥',eur:'€',usd:'$',inr:'₹'};
+const PAID_BLOB=/*PB*/{"s":"j4Rvp2JgQPDlvm9wqMsNMA==","v":"Ds+Z73v5YJFj+kcL","i":600000,"c":"0FdIn/c3H4Mt2+fYCFxDMg+HPQZv6oZ24hBCg1qi0kngdbrtsNodoQF95w2Vt+Jjx9uEys2OHiNkdCkBqnXEVyggz8+TGMMcPeBvobUFNwe3TiOvwGV+vtoMMNzZcdYcQO26WGv9qNyqSzn56CZUsqo0oYcqlRCRoSQJaURCuNTGGX4u7WyZ6VojNmkPJ2Dd6OogF822qLbGcoKLj5RS0wMeD3y2fciqoJERHdoWXezH+s6tBGEUXKlRnnNQ6F1GotoDptAzwFoPiHs40o2ZPojzVDmBAwAf76WCrnhuVyq1N3t5dJSI89WXtvEx2GTj76HCpsbHiTkM4NoDUMtAUtbv3ZLlUxEsD8WJKmh+jfhbgfhGxk6ZR3fkKoENWITtEOuzhqYq6NSq/8bmjIeRTpwgxUKluq+CIzM9OPzjNo12YYiTDh9KoM6lvqKm3xQnV7aqgaiAQMe2P2FhvDoT9FN0KfL8ZCqVQ+KmYeGXlZ08Sx7vKJRVh0DyHqdtqcI1/mIBzDovll7h8MwREEZ/W2JrcJ6VPZqo2u50HU1+z4KUbxAT5MFtCIHNGj3TekjtU6H09PtrA0P1KK/w6wHsTD/5W2e8UiiL08SaXGyoOFTl5sGDNgyel6Z43qSJgtb+GKMF8qma2+QBP/ST8xoj1+4IeFOyQZXPd3C+Yy05lZU6wwsBDpQAIlf9ClwIKAJJGMIcdJBYrGNih1vIQYQGwrlt4aWX8lM9xLUSR0Pg9kKrnxJ8mykvC1hfDedENj0DVt8+s3YfB5TufKiARJ0pBmN2HK22PfPiQP9MkMg2JkwWuRNXc+W1YAJr+2iz2xQJsD08SPQzztsRpHX73vPSzhPyZNWVv0O20gykPCEcWsGTk0yjUHP3E1n/GQq1aa8Y5TbCrth2SHr1K1ZW0PpBVpVd2zYuka4gY2giW2umtIU/JAO3OpfMgDqW7NND1hI0kTAiYXN1t/EXf3wGApY84BoNlALQ2XscnJdsN17RdZovAAsEb4+75M8DoptqJIMZA7IhmTbKknjAekuRp2xP3owRKzBwbj3xmFsWjNwxUbcgAKm38fcWaCPeI/68DpKcxiSI/haSGI1uEu6tSX9XdL5sovDGubUgjvTlW8ybOdk1KZi1dvP3YwSQY+E4bizEgcQ2FV6AxnSrhei3pW5z51gFDmnZZIDbsA32VZqqd3BGc6fbfhimT6oANfSWSFsTerC9V1kQGwjp6y8zTdxULj/zkdhpDHqKEYTn7aWq8k6fMpek424b32zL2WEdZp97SZaXGKNNw7yP9iSwhT/P5f1NbZuUWyPYS8MUsdecbyOpXoBfbbxuupU9T4jEwVHlXBBLWdaI5wlvad0suLEPYH/xRWrxteVM2Pmy6jfjZbRWW0WYkk84qU2JHKJrvTD1mcjC5MWHvteZUYAigLkbgWJm2jtlLDP59XOnDiKNrnRRMiyFM1O+9zLfbPtEfLlI4uCeRytzvZNxsgIVJP/gQbHl1nffxmdAlQbeMhnwWKiRKijFa1v30MbivobjESrZNV/w/MKA3Km+qg5pkI2LBjYdaVZg33XkXDhte+QU0X/hSEurE3Tt4A8zYLyFBvX5g0Of+U+oJWaWdzxsYxIVGlZwKqYHLXGRLAJb0U2VSimVuSHhlgTwWrDesgE9vcpRdSGNCBT1yYJz8iDysT+I9tMq5uXIFblB3dqjzIg+8GeQagC2U/lAuD68TUirspEABg6LZ04He621JhkmN8yW8O0zgEUfhEhPfn/9AS+EtTpcp68BtkbbzKQttfbGlkyKuky4c0QbHIq0EzSoGYiGEJgWhAzmMhU4UqRXGvqjN1KgnOdij+CK1eC6r9Q0JmJznv3f9ExBvqrmFOAafVg1r6ZqSKfwcSVBOVvLe6/HnWXRm7yTgNJuqTgECGNQA/2q97TqAA/6AFiubcAbYvivigQMvN+QHaPKIxgrJi6/iTrTpViSw3h0sR0CLIhA2QkxsD7xi6TN992U1783O2lxZrxszZJSNjrxbkfS5r+OIXq9eZsOeZRfeCbOIA1eDMQVidhyjYJifQt16H5t+hm9SZxRM6bG72NcjWPctS58j2ITJCd3EZFO5uwnJ89TZhZ4NKiPWOt0HQpZKZdG70/Ab7kWCGXgAXIbHCdl1+3KWEltZEDlonuhHxLGsE6xiqopwcFsoCpO3QjQESs47JRBefZwZiFE1NVevTuAYgjwsZwQ2amrf06mLTG+RQcj0buVimQV+DARKw0ymvJEHzFKdut7r1KF3dIb2x6M+x0CmOV3Ga6qyiN2cmCMjMZOH1z+jCWgcAf/cCzW1hUChx4BxMRQ6tzIUm8z2F5nh4hG9qHSxhLWFRQvzkeriH6B3waql0spsN/kl6HOgU+pQW7myjV72JoiJ0Fmp8vxEDMcvkzR8e/TK5I6lE03m/K1FvYSXgXTHNnDidMb6hd65O0i0V9rwXVU+jBnq9Qr0bT2f0FYJQJJDpOQNkRJPiz2btYSEb9U83h8mGRJXw93eVRaM9ZLbr/OY4/vkYLSpuiOmE1vyRMvfbNVXbLhji+FDJYexjIg4ccbfoR2deQrrnGFw8U4WnohTaqLs7O4SzzEsnPXrrqokfWUXNukSNIbUtTxLmw+o2vLBWz2qT8e5/7HrQD6l2LyPBR6oqc0hPqdI/fzGzrb1mTFljp4ikdnm7T693+iSJFrgCBUVpjEtX5SsMtC2v3OBxmh4Qglj2zw/epH3qjoURYiUtKoKcNbk4Toamb01giibjZn+ScHkuI+qIrCX1BjMdKN31BRJ0S6ByFKUvRPC0oOV8ccJA/5BIHrf8KQWupzkCYbiHzVgmGxqBIUtW69O69bG4aYqedXnu6FgOJ2uiX81F8uMcbVpI7Ls3OXn/wPtn8flLqZELJGzFGKgegEn1iNtugD1EG3tT2iX2yiqQkfbMqM3n0iutrYrMwZtibRf/1B1t0treS9PknDXk1+kcJkM+KncntQsfvIrS6ITnJh3VOwQ8/1M+iGeRdn3nl5+fKFPsQMcy36XinWXii9EiAStwdx42+xKfMjzfsLFydk/byia7C1qarUF8APXstYO9fZr0SV6/Q8JqWrYZcyLFdPXBADoWwMUNWfd2jKESWuZNq1W9RmDcz5WyqA/c2U2T2LRukwt1z2Vm8RH0j248rS6JFTbbXvziK14FZ25GqMANBGjq0NCl/UX1NjcPk5KqLeKbb7rNdhR4qBvgT6PXglua/AaiEMf+p06RK3+OdU1KgypP9hElv/7gtCZjaLVaYGpVPHFyUqdyHQEMYAIsJIQ3S2fd97TN+BonQb53z8Q3SrCLGcmYmpZsP/gEsfY+w/rmQzcybufazN6ckX3N4FnZC7loqx48gjZ93KC4XFa+XtsPC+7qvRF0Q1h7ak7JsQ3szT1cPZmrdkpxYKTmlLKcUlK2J5jD2pnhnJQXT2Kjr3a4O22ue/srJNVu3pHO+cJAlVN9fds023/c6aNpxTD6AEzniwC9LnTEZhEY3/535lLWiyabpEvPJPpqGvSQdb3wkbzuj1K7b8bWv+SVcuM8GISrUOJS3XbXtTD3yIoAiTzWluG/+Cvy7tgWyQ/rG8Oy8wDGcI6nsLwh5ylbVaEa+BaIY3HQlXR/Djy4TRd9qanYQuvvdnYzuDb7XTGf4yj6EemqpTOi1Q9x4EDNPFOYzijaiGIax9JlVlBKKi2td62B/ao7Z1YYhFiFzGjrlYEXPipQtoJ/F2p12ci75BkZVCk9NI9J5RqpgmvTavSXxAwdgLZ5Q+e1/mhWJHxmYH7epWKGqPzPPPcWzWYAK++Iw="}/*PB*/;
+let PAID=null,spMode='trip';
 let EXP=[],EXPDEL=[],expMe='',expCat='Food',expPay='Cash',expEdit=null,expDelAsk=null;
 try{EXP=JSON.parse(localStorage.getItem('expenses')||'[]');EXPDEL=JSON.parse(localStorage.getItem('expDel')||'[]');expMe=localStorage.getItem('expMe')||'';expPay=localStorage.getItem('expPay')||'Cash';}catch(e){}
 function saveExp(){try{localStorage.setItem('expenses',JSON.stringify(EXP));localStorage.setItem('expDel',JSON.stringify(EXPDEL));}catch(e){toast('Could not save on this phone');}}
@@ -1006,7 +1010,8 @@ function renderSpend(){
   const tdy=EXP.filter(x=>x.date===today).reduce((a,x)=>a+x.yen,0);
   const sumBy=k=>{const m={};EXP.forEach(x=>m[x[k]]=(m[x[k]]||0)+x.yen);return Object.entries(m).sort((a,b)=>b[1]-a[1]);};
   const days=[...new Set(EXP.map(x=>x.date))].sort().reverse();
-  $('#main').innerHTML=`<div class="dayhead"><div class="eyebrow">Spend</div><h1>Expenses</h1></div>
+  if(spMode==='before')return renderPaid();
+  $('#main').innerHTML=`<div class="dayhead"><div class="eyebrow">Spend</div><h1>Expenses</h1></div>${spTabs()}
   <p class="small">Saved on this phone and works offline. To put the family's lists together, use <b>Share my list</b> below and paste it into the other phone.</p>
   <form class="expform" id="expform" autocomplete="off">
     <div><div class="small" style="margin-bottom:4px">Who paid</div><div class="pills">${PEOPLE.map(n=>`<button class="pill" type="button" data-expby="${n}" aria-pressed="${n===by}">${n}</button>`).join('')}</div></div>
@@ -1034,6 +1039,24 @@ function renderSpend(){
     <div style="display:flex;gap:10px;flex-wrap:wrap"><button class="btn" type="button" data-expshare ${EXP.length?'':'disabled'}>Share my list</button><button class="btn" type="button" data-expcsv ${EXP.length?'':'disabled'}>Download spreadsheet (CSV)</button></div>
     <div class="expimp" style="margin-top:12px;display:grid;gap:8px"><label for="ex-imp" class="small">Paste a shared list</label><textarea id="ex-imp" placeholder="Paste the whole message here"></textarea><div><button class="btn" type="button" data-expimp>Add to my list</button></div></div>
   </section>`;
+}
+const spTabs=()=>`<div class="pills" role="tablist" style="margin:4px 0 12px"><button class="pill" type="button" role="tab" data-spmode="trip" aria-pressed="${spMode==='trip'}">On the trip</button><button class="pill" type="button" role="tab" data-spmode="before" aria-pressed="${spMode==='before'}">Paid before the trip</button></div>`;
+const toYen=x=>x.amt==null?0:x.cur==='jpy'?x.amt:x.amt*RATE[x.cur];
+function renderPaid(){
+  const head=`<div class="dayhead"><div class="eyebrow">Spend</div><h1>Spent so far</h1></div>${spTabs()}`;
+  if(!PAID){$('#main').innerHTML=head+`<p>Booking prices are locked with the family passcode, like Tickets.</p><button class="btn" type="button" data-view="tickets">Unlock in Tickets</button>`;return;}
+  const paid=PAID.filter(x=>x.st==='paid'||x.st==='est'), due=PAID.filter(x=>x.st==='due');
+  const sum=a=>a.reduce((t,x)=>t+toYen(x),0);
+  const pre=sum(paid), owe=sum(due), trip=EXP.reduce((a,x)=>a+x.yen,0);
+  const secs=[...new Set(PAID.map(x=>x.sec))];
+  const amt=x=>x.amt==null?'<span class="small">not known</span>':x.cur==='jpy'?yen(x.amt):`${ECUR[x.cur]}${fmt(x.amt,2)}<br><span class="small">≈ ${yen(toYen(x))}</span>`;
+  const tag={paid:'',est:' · <b>estimate</b>',due:' · <b>still to pay</b>',unknown:''};
+  $('#main').innerHTML=head+`<div class="exptot"><div><span class="small">Booked and paid</span><b>${yen(pre)}</b><span class="small">€${fmt(pre/RATE.eur,0)} · ₹${fmt(pre/RATE.inr,0)}</span></div>
+    <div><span class="small">Still to pay (Kyoto hotel)</span><b>${yen(owe)}</b><span class="small">€${fmt(owe/RATE.eur,0)} · ₹${fmt(owe/RATE.inr,0)}</span></div>
+    <div><span class="small">Spent on the trip</span><b>${yen(trip)}</b><span class="small">from this phone's list</span></div>
+    <div><span class="small">Whole trip so far</span><b>${yen(pre+trip)}</b><span class="small">€${fmt((pre+trip)/RATE.eur,0)} · ₹${fmt((pre+trip)/RATE.inr,0)}</span></div></div>
+  ${secs.map(sc=>{const xs=PAID.filter(x=>x.sec===sc);return `<section class="sec"><h2>${esc(sc)} <span class="small">· ${yen(sum(xs.filter(x=>x.st!=='due')))}</span></h2><ul class="explist">${xs.map(x=>`<li><span>${esc(x.what)}</span><span class="am">${amt(x)}</span><span class="meta">${esc(x.note)}${tag[x.st]||''}</span></li>`).join('')}</ul></section>`}).join('')}
+  <p class="small">Euro and rupee prices are shown in yen at the rates set in Tools. Not included: the seniors' JAL flights and Niva Bupa insurance (no price in Gmail). When you pay the Kyoto hotel, add it under On the trip and it moves into the total.</p>`;
 }
 const b64e=s=>btoa(Array.from(new TextEncoder().encode(s),c=>String.fromCharCode(c)).join('')).replace(/\+/g,'-').replace(/\//g,'_').replace(/=+$/,'');
 const b64d=s=>new TextDecoder().decode(Uint8Array.from(atob(s.replace(/-/g,'+').replace(/_/g,'/')),c=>c.charCodeAt(0)));
@@ -1079,6 +1102,7 @@ document.addEventListener('submit',e=>{
 });
 document.addEventListener('click',e=>{
   if(view!=='spend')return;
+  const sm=e.target.closest('[data-spmode]');if(sm){spMode=sm.dataset.spmode;renderSpend();return;}
   const p=e.target.closest('[data-expby],[data-expcat],[data-exppay]');
   if(p){const k=p.dataset.expby?'expby':p.dataset.expcat?'expcat':'exppay';document.querySelectorAll('[data-'+k+']').forEach(b=>b.setAttribute('aria-pressed',b===p));return;}
   const ed=e.target.closest('[data-expedit]');if(ed){expEdit=ed.dataset.expedit;expDelAsk=null;renderSpend();window.scrollTo(0,0);return;}
