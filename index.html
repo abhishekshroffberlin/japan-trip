@@ -255,7 +255,11 @@ const PIN='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-wid
 const TEL='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 16.9v3a2 2 0 0 1-2.2 2 19.8 19.8 0 0 1-8.6-3.1 19.5 19.5 0 0 1-6-6A19.8 19.8 0 0 1 2.1 4.2 2 2 0 0 1 4.1 2h3a2 2 0 0 1 2 1.7c.1 1 .4 1.9.7 2.8a2 2 0 0 1-.5 2.1L8 9.9a16 16 0 0 0 6 6l1.3-1.3a2 2 0 0 1 2.1-.4c.9.3 1.8.6 2.8.7a2 2 0 0 1 1.7 2z"/></svg>';
 const CLOUD='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17.5 19H8a5 5 0 1 1 1.6-9.7A6 6 0 0 1 21 12.5 3.5 3.5 0 0 1 17.5 19z"/></svg>';
 const COPY='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>';
-const maps=q=>'https://www.google.com/maps/search/?api=1&query='+encodeURIComponent(q);
+/* Apple Maps links (open the Maps app on iPhone); coordinates become a dropped pin */
+const LL=/^-?\d+(\.\d+)?,\s*-?\d+(\.\d+)?$/;
+const maps=q=>LL.test(q)?'https://maps.apple.com/?ll='+encodeURIComponent(q)+'&q='+encodeURIComponent('Pin'):'https://maps.apple.com/?q='+encodeURIComponent(q);
+const DIRFLG={driving:'d',walking:'w',transit:'r'};
+const dirLink=(a,b,mode)=>'https://maps.apple.com/?saddr='+encodeURIComponent(a)+'&daddr='+encodeURIComponent(b)+'&dirflg='+(DIRFLG[mode]||'d');
 const REG={narita:'Narita',hokkaido:'Hokkaido',kyoto:'Kyoto',nikko:'Nikko',tokyo:'Tokyo'};
 
 const STAYS={
@@ -671,7 +675,7 @@ function renderDay(){
   const items=P.items.map(([tm,txt,s,q,leg])=>{
     let legHtml='';
     if(q){
-      const dir=`https://www.google.com/maps/dir/?api=1&origin=${encodeURIComponent(prevQ)}&destination=${encodeURIComponent(q)}&travelmode=${mode}`;
+      const dir=dirLink(prevQ,q,mode);
       legHtml=`<div class="leg">${leg?`<span>↳ ${esc(leg)}</span>`:''}<a href="${dir}" target="_blank" rel="noopener">Directions ↗</a><a href="${maps(q)}" target="_blank" rel="noopener">Map ↗</a></div>`;
       prevQ=q;
     }
@@ -682,7 +686,7 @@ function renderDay(){
   if(mode!=='transit' && stops.length>1){
     const o=stops[0], dst=stops[stops.length-1], w=stops.slice(1,-1).slice(0,9);
     const url=`https://www.google.com/maps/dir/?api=1&origin=${encodeURIComponent(o)}&destination=${encodeURIComponent(dst)}${w.length?`&waypoints=${encodeURIComponent(w.join('|'))}`:''}&travelmode=${mode}`;
-    route=`<div class="routebar"><a class="btn primary" href="${url}" target="_blank" rel="noopener">${PIN}Route for today</a><span class="small">Opens all ${stops.length} stops in Google Maps, ${mode==='driving'?'by car':'on foot'}.</span></div>`;
+    route=`<div class="routebar"><a class="btn primary" href="${url}" target="_blank" rel="noopener">${PIN}Route for today</a><span class="small">Opens all ${stops.length} stops in Google Maps (Apple Maps links can't hold several stops), ${mode==='driving'?'by car':'on foot'}. Single stops below open in Apple Maps.</span></div>`;
   } else if(stops.length>1){
     route=`<div class="routebar"><span class="small">Train and subway day: tap <b>Directions</b> under each stop for that leg on public transport.</span></div>`;
   }
@@ -698,7 +702,7 @@ function renderDay(){
     <p class="intro">${esc(d.intro)}</p>
   </div>
   <section class="sec"><h2>Today's route</h2>${route}<ol class="tl">${items}</ol></section>
-  ${L.length?`<section class="sec"><div class="secrow"><h2>Lunch nearby</h2><button class="toggle" type="button" id="vegtoggle" aria-pressed="${vegOnly}">Veg-friendly only</button></div><div class="lunch">${lunchHtml}</div><p class="small">Picked for where the route puts you at midday. Hours change, so check Google Maps before you go. Fish stock (dashi) hides in many dishes; "Veg options" places need the phrase from Help.</p></section>`:''}
+  ${L.length?`<section class="sec"><div class="secrow"><h2>Lunch nearby</h2><button class="toggle" type="button" id="vegtoggle" aria-pressed="${vegOnly}">Veg-friendly only</button></div><div class="lunch">${lunchHtml}</div><p class="small">Picked for where the route puts you at midday. Hours change, so check opening times in Maps before you go. Fish stock (dashi) hides in many dishes; "Veg options" places need the phrase from Help.</p></section>`:''}
   <section class="sec"><div class="note"><b>${esc(d.note[0])}</b>${esc(d.note[1])}</div></section>
   <section class="sec"><h2>${d.stay?'Tonight':'Tonight'}</h2>${d.stay?stayCard(d.stay,d.stayNote):`<div class="stay"><div class="nm">Flights home</div><div class="small">Prabhakar & Anitha on JL 753 (18:25, T2). Berlin group on MS 965 (20:30). Confirm terminals on the e-tickets.</div><div class="actions"><a class="btn primary" href="${maps('成田国際空港')}" target="_blank" rel="noopener">${PIN}Narita Airport</a></div></div>`}</section>
   <section class="sec"><details class="facts"><summary>Did you know? (${d.facts.length+(MORE_FACTS[key(d)]||[]).length})</summary><dl>${d.facts.concat(MORE_FACTS[key(d)]||[]).map(([a,b])=>`<div><dt>${esc(a)}</dt><dd>${esc(b)}</dd></div>`).join('')}</dl></details></section>
