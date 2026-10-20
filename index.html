@@ -765,7 +765,34 @@ function refreshNextUp(){const el=$('#nextup');if(el)el.innerHTML=nextUpHtml();}
 const RATE_DEFAULT={eur:177,usd:158.4,inr:1.66}; /* yen per €1, $1 and ₹1, mid-market on 14 Oct 2026 */
 const qrow=y=>`<tr><td>¥${fmt(y,0)}</td><td>€${fmt(y/RATE.eur,2)}</td><td>$${fmt(y/RATE.usd,2)}</td><td>₹${fmt(y/RATE.inr,0)}</td></tr>`;
 let RATE={...RATE_DEFAULT};
-try{const r=JSON.parse(localStorage.getItem('rates')||'null');if(r&&r.eur>0&&r.inr>0)RATE={...RATE_DEFAULT,...r};}catch(e){}
+let RATE_SRC=null,rateManual=false; /* RATE_SRC: {date,src,at} of the last live rate */
+try{rateManual=localStorage.getItem('rateManual')==='1';
+  const r=JSON.parse(localStorage.getItem(rateManual?'rates':'ratesLive')||'null');
+  if(r&&r.eur>0&&r.usd>0&&r.inr>0){RATE={eur:r.eur,usd:r.usd,inr:r.inr};if(!rateManual)RATE_SRC=r;}}catch(e){}
+/* live rates: ECB via Frankfurter, else open.er-api.com; checked at most every 30 min while online */
+async function fetchRates(force){
+  if(rateManual&&!force)return;
+  if(!force&&RATE_SRC&&Date.now()-RATE_SRC.at<30*60e3)return;
+  const get=async(u,f)=>{const c=new AbortController(),t=setTimeout(()=>c.abort(),8000);try{const r=await fetch(u,{cache:'no-store',signal:c.signal});if(!r.ok)throw 0;return f(await r.json());}finally{clearTimeout(t);}};
+  const fromEur=(j,y,u,i,d,src)=>{if(!(y>0&&u>0&&i>0))throw 0;return {eur:+y.toFixed(2),usd:+(y/u).toFixed(2),inr:+(y/i).toFixed(4),date:d,src,at:Date.now()};};
+  let r=null;
+  try{r=await get('https://api.frankfurter.dev/v1/latest?base=EUR&symbols=JPY,USD,INR',j=>fromEur(j,j.rates.JPY,j.rates.USD,j.rates.INR,j.date,'the European Central Bank'));}catch(e){}
+  if(!r)try{r=await get('https://open.er-api.com/v6/latest/EUR',j=>fromEur(j,j.rates.JPY,j.rates.USD,j.rates.INR,new Date(j.time_last_update_unix*1000).toISOString().slice(0,10),'ExchangeRate-API'));}catch(e){}
+  if(!r){if(force)toast('No connection. Keeping the saved rate.');rateStatus();return;}
+  RATE={eur:r.eur,usd:r.usd,inr:r.inr};RATE_SRC=r;rateManual=false;
+  try{localStorage.setItem('ratesLive',JSON.stringify(r));localStorage.removeItem('rateManual');}catch(e){}
+  if(view==='tools'){['eur','usd','inr'].forEach(c=>{const el=$('#rt-'+c);if(el&&document.activeElement!==el)el.value=RATE[c];});
+    const q=$('#qtab tbody');if(q)q.innerHTML=[500,1000,3000,5000,10000,30000].map(qrow).join('');
+    const j=$('#cv-jpy');if(j&&j.value)convert('jpy',j.value);}
+  rateStatus();
+}
+function rateText(){
+  const d=x=>new Date(x+'T12:00:00Z').toLocaleDateString('en-GB',{day:'numeric',month:'short',timeZone:'UTC'});
+  if(rateManual)return 'Using the rate you typed in. <button class="btn" type="button" data-ratelive style="padding:2px 8px;font-size:.75rem">Use live rate</button>';
+  if(RATE_SRC)return `Live rate from ${esc(RATE_SRC.src)}, ${d(RATE_SRC.date)}, checked ${new Date(RATE_SRC.at).toLocaleTimeString('en-GB',{hour:'2-digit',minute:'2-digit',timeZone:'Asia/Tokyo'})} Japan time. It updates by itself when you're online. Card and ATM rates are usually 1–3% worse.`;
+  return 'Saved rate from 14 Oct 2026. It updates by itself next time you open this with internet. Card and ATM rates are usually 1–3% worse.';
+}
+function rateStatus(){const el=$('#ratemsg');if(el)el.innerHTML=rateText();}
 const fmt=(n,dp)=>isFinite(n)?n.toLocaleString('en-GB',{maximumFractionDigits:dp,minimumFractionDigits:0}):'';
 const CARDS=[
   ['私たちはベジタリアンです。肉と魚は食べません。','We are vegetarian. We don\'t eat meat or fish.',"Watashitachi wa bejitarian desu. Niku to sakana wa tabemasen."],
@@ -801,7 +828,7 @@ function renderTools(){
       <label for="cv-inr"><span>₹</span><input id="cv-inr" inputmode="decimal" autocomplete="off" placeholder="Rupees" data-cur="inr"></label>
     </div>
     <div class="rates"><span class="small">Rate:</span><label for="rt-eur">€1 = ¥<input id="rt-eur" inputmode="decimal" value="${RATE.eur}"></label><label for="rt-usd">$1 = ¥<input id="rt-usd" inputmode="decimal" value="${RATE.usd}"></label><label for="rt-inr">₹1 = ¥<input id="rt-inr" inputmode="decimal" value="${RATE.inr}"></label></div>
-    <p class="small">Mid-market rate on 14 Oct 2026. Card and ATM rates are usually 1–3% worse. Change the rate if it moves; your phone remembers it.</p>
+    <p class="small" id="ratemsg" role="status">${rateText()}</p>
     <table class="qtab" id="qtab"><thead><tr><th>Yen</th><th>Euro</th><th>Dollars</th><th>Rupees</th></tr></thead><tbody>${quick.map(qrow).join('')}</tbody></table>
   </section>
   <section class="sec"><h2>Show-the-staff cards</h2><p class="small" style="margin-top:0">Tap a card to show it full screen.</p>
@@ -826,7 +853,7 @@ document.addEventListener('input',e=>{
   const c=e.target.dataset&&e.target.dataset.cur; if(c){convert(c,e.target.value);return;}
   if(e.target.id==='rt-eur'||e.target.id==='rt-usd'||e.target.id==='rt-inr'){
     const a=parseFloat($('#rt-eur').value),u=parseFloat($('#rt-usd').value),b=parseFloat($('#rt-inr').value);
-    if(a>0&&u>0&&b>0){RATE={eur:a,usd:u,inr:b};try{localStorage.setItem('rates',JSON.stringify(RATE))}catch(err){}
+    if(a>0&&u>0&&b>0){RATE={eur:a,usd:u,inr:b};rateManual=true;try{localStorage.setItem('rates',JSON.stringify(RATE));localStorage.setItem('rateManual','1')}catch(err){};rateStatus();
       const q=[500,1000,3000,5000,10000,30000];$('#qtab tbody').innerHTML=q.map(qrow).join('');
       const j=$('#cv-jpy').value;if(j)convert('jpy',j);}
   }
@@ -1127,6 +1154,7 @@ document.addEventListener('click',e=>{
   const tab=e.target.closest('[data-view]'); if(tab){view=tab.dataset.view;if(view==='tickets')tkSec=null;render(true);return;}
   if(e.target.closest('#vegtoggle')){vegOnly=!vegOnly;try{localStorage.setItem('vegOnly',vegOnly?'1':'0')}catch(err){};renderDay();return;}
   const tj=e.target.closest('[data-tkday]'); if(tj){tkFocus=tj.dataset.tkday;view='tickets';render(true);return;}
+  if(e.target.closest('[data-ratelive]')){fetchRates(true);return;}
   const pk=e.target.closest('[data-pack]'); if(pk){openPack(pk.dataset.pack==='save');return;}
   const ts=e.target.closest('[data-tksec]'); if(ts){tkSec=ts.dataset.tksec||null;renderTickets();return;}
   if(e.target.closest('#tklock')){TK=null;try{localStorage.removeItem('tkpass')}catch(err){};renderTickets();return;}
@@ -1150,6 +1178,7 @@ document.addEventListener('click',e=>{
   else if(tIdx>=0)cur=tIdx;
   else cur=japanDate()>'2026-11-01'?DAYS.length-1:0;
   tick();setInterval(()=>{tick();refreshNextUp();},30000);
+  fetchRates();window.addEventListener('online',()=>fetchRates());document.addEventListener('visibilitychange',()=>{if(!document.hidden)fetchRates();});
   render(false);
 })();
 </script>
