@@ -926,6 +926,9 @@ async function unlockTickets(pass){
   TKPASS=normPass(pass);
   try{const pb=PAID_BLOB,k1=await crypto.subtle.deriveKey({name:'PBKDF2',salt:u8(pb.s),iterations:pb.i,hash:'SHA-256'},k0,{name:'AES-GCM',length:256},false,['decrypt']);
     PAID=JSON.parse(new TextDecoder().decode(await crypto.subtle.decrypt({name:'AES-GCM',iv:u8(pb.v)},k1,u8(pb.c))));}catch(e){PAID=null;}
+  try{const sb=SYNC_BLOB,k2=await crypto.subtle.deriveKey({name:'PBKDF2',salt:u8(sb.s),iterations:sb.i,hash:'SHA-256'},k0,{name:'AES-GCM',length:256},false,['decrypt']);
+    SYNC=JSON.parse(new TextDecoder().decode(await crypto.subtle.decrypt({name:'AES-GCM',iv:u8(sb.v)},k2,u8(sb.c))));}catch(e){SYNC=null;}
+  if(SYNC)syncExp();
 }
 function renderTickets(){
   document.documentElement.style.setProperty('--region','var(--accent)');
@@ -1012,9 +1015,49 @@ const ECATS=['Food','Transport','Sights','Shopping','Hotel','Other'];
 const ECUR={jpy:'¥',eur:'€',usd:'$',inr:'₹'};
 const PAID_BLOB=/*PB*/{"s":"P/Zy4muslD7quHQ6KUOyDQ==","v":"ELs6wbNSCDjUs66L","i":600000,"c":"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"}/*PB*/;
 let PAID=null,spMode='trip';
+const SYNC_BLOB=/*SB*/null/*SB*/;
+let SYNC=null,syncMsg='',syncBusy=false,syncAgain=false,syncT=null,EXPDT={};
 let EXP=[],EXPDEL=[],expMe='',expCat='Food',expPay='Cash',expEdit=null,expDelAsk=null;
-try{EXP=JSON.parse(localStorage.getItem('expenses')||'[]');EXPDEL=JSON.parse(localStorage.getItem('expDel')||'[]');expMe=localStorage.getItem('expMe')||'';expPay=localStorage.getItem('expPay')||'Cash';}catch(e){}
-function saveExp(){try{localStorage.setItem('expenses',JSON.stringify(EXP));localStorage.setItem('expDel',JSON.stringify(EXPDEL));}catch(e){toast('Could not save on this phone');}}
+try{EXP=JSON.parse(localStorage.getItem('expenses')||'[]');EXPDEL=JSON.parse(localStorage.getItem('expDel')||'[]');expMe=localStorage.getItem('expMe')||'';expPay=localStorage.getItem('expPay')||'Cash';EXPDT=JSON.parse(localStorage.getItem('expDelT')||'{}');}catch(e){}
+function storeExp(){try{localStorage.setItem('expenses',JSON.stringify(EXP));localStorage.setItem('expDel',JSON.stringify(EXPDEL));localStorage.setItem('expDelT',JSON.stringify(EXPDT));}catch(e){toast('Could not save on this phone');}}
+function saveExp(){storeExp();clearTimeout(syncT);syncT=setTimeout(syncExp,1200);}
+/* family sync: one Google Sheet (Apps Script web app); its link is in the passcode-locked SYNC_BLOB.
+   Each phone sends its whole list; the sheet keeps the newest version of each entry (upd) and returns everything. */
+const COLS=['id','date','by','pay','what','cat','amt','cur','yen','ts','upd','del'];
+async function syncExp(){
+  if(!SYNC)return;
+  if(syncBusy){syncAgain=true;return;}
+  syncBusy=true;syncMsg='Syncing…';syncStatus();
+  try{
+    const rows=EXP.map(x=>({...x,pay:x.pay||'Cash',upd:x.upd||x.ts,del:''})).concat(Object.entries(EXPDT).map(([id,t])=>({id,upd:t,del:'1'})));
+    const c=new AbortController(),tm=setTimeout(()=>c.abort(),20000);
+    const r=await fetch(SYNC.url,{method:'POST',headers:{'Content-Type':'text/plain;charset=utf-8'},body:JSON.stringify({t:SYNC.t,rows:rows.map(x=>Object.fromEntries(COLS.map(k=>[k,x[k]==null?'':x[k]])))}),signal:c.signal});
+    clearTimeout(tm);const j=await r.json();if(!j.rows)throw 0;
+    mergeExp(j.rows);
+    syncMsg='Shared with the family · synced '+new Date().toLocaleTimeString('en-GB',{hour:'2-digit',minute:'2-digit',timeZone:'Asia/Tokyo'});
+    try{localStorage.setItem('expSynced',String(Date.now()))}catch(e){}
+  }catch(e){syncMsg='Shared list not reachable right now. Your entries are saved on this phone and sync when there is internet.';}
+  syncBusy=false;
+  if(view==='spend'&&spMode==='trip'&&!expEdit&&!($('#ex-amt')&&$('#ex-amt').value)&&!($('#ex-what')&&$('#ex-what').value)&&!($('#ex-imp')&&$('#ex-imp').value))renderSpend();else syncStatus();
+  if(syncAgain){syncAgain=false;syncExp();}
+}
+function mergeExp(rows){
+  rows.forEach(r=>{
+    const id=String(r.id||'');if(!id)return;const upd=+r.upd||+r.ts||0;
+    if(String(r.del)==='1'){if(!EXPDT[id]){EXPDT[id]=upd||Date.now();EXPDEL.push(id);}EXP=EXP.filter(x=>x.id!==id);return;}
+    if(EXPDT[id])return;
+    const rec={id,date:String(r.date).slice(0,10),by:String(r.by),pay:r.pay==='Card'?'Card':'Cash',what:String(r.what||''),cat:String(r.cat||'Other'),amt:+r.amt||0,cur:ECUR[r.cur]?r.cur:'jpy',yen:+r.yen||0,ts:+r.ts||upd,upd};
+    const x=EXP.find(e=>e.id===id);
+    if(!x)EXP.push(rec);else if(upd>(x.upd||x.ts))Object.assign(x,rec);
+  });
+  storeExp();
+}
+function syncStatus(){const el=$('#syncmsg');if(el)el.textContent=syncText();}
+function syncText(){
+  if(SYNC)return syncMsg||'Shared with the family.';
+  if(SYNC_BLOB&&!TK)return 'Unlock Tickets with the family passcode to share this list with everyone.';
+  return 'Saved on this phone and works offline. To put the family\'s lists together, use Share my list below and paste it into the other phone.';
+}
 const yen=n=>'¥'+fmt(Math.round(n),0);
 const dayLabel=d=>new Date(d+'T12:00:00Z').toLocaleDateString('en-GB',{weekday:'short',day:'numeric',month:'short',timeZone:'UTC'});
 function renderSpend(){
@@ -1027,8 +1070,9 @@ function renderSpend(){
   const sumBy=k=>{const m={};EXP.forEach(x=>m[x[k]]=(m[x[k]]||0)+x.yen);return Object.entries(m).sort((a,b)=>b[1]-a[1]);};
   const days=[...new Set(EXP.map(x=>x.date))].sort().reverse();
   if(spMode==='before')return renderPaid();
+  if(SYNC&&!syncBusy&&Date.now()-(()=>{try{return +localStorage.getItem('expSynced')||0}catch(e){return 0}})()>20000)setTimeout(syncExp,0);
   $('#main').innerHTML=`<div class="dayhead"><div class="eyebrow">Spend</div><h1>Expenses</h1></div>${spTabs()}
-  <p class="small">Saved on this phone and works offline. To put the family's lists together, use <b>Share my list</b> below and paste it into the other phone.</p>
+  <p class="small" id="syncmsg" role="status">${esc(syncText())}</p>
   <form class="expform" id="expform" autocomplete="off">
     <div><div class="small" style="margin-bottom:4px">Who paid</div><div class="pills">${PEOPLE.map(n=>`<button class="pill" type="button" data-expby="${n}" aria-pressed="${n===by}">${n}</button>`).join('')}</div></div>
     <div class="amt"><label>Currency<select id="ex-cur">${Object.entries(ECUR).map(([k,v])=>`<option value="${k}"${(ed?ed.cur:'jpy')===k?' selected':''}>${v}</option>`).join('')}</select></label>
@@ -1111,8 +1155,8 @@ document.addEventListener('submit',e=>{
   if(!date)return msg('Pick the date.');
   const y=cur==='jpy'?amt:amt*RATE[cur];
   const rec={by:by.expby,amt,cur,yen:Math.round(y),what:$('#ex-what').value.trim(),cat:cat?cat.expcat:'Other',pay:pay&&pay.exppay||'Cash',date};
-  if(expEdit){const x=EXP.find(x=>x.id===expEdit);if(x)Object.assign(x,rec);expEdit=null;toast('Saved');}
-  else{EXP.push({id:Date.now().toString(36)+Math.random().toString(36).slice(2,7),ts:Date.now(),...rec});toast('Added '+yen(rec.yen));}
+  if(expEdit){const x=EXP.find(x=>x.id===expEdit);if(x)Object.assign(x,rec,{upd:Date.now()});expEdit=null;toast('Saved');}
+  else{EXP.push({id:Date.now().toString(36)+Math.random().toString(36).slice(2,7),ts:Date.now(),upd:Date.now(),...rec});toast('Added '+yen(rec.yen));}
   expMe=rec.by;expCat=rec.cat;expPay=rec.pay;try{localStorage.setItem('expMe',expMe);localStorage.setItem('expPay',expPay)}catch(err){}
   saveExp();renderSpend();
 });
@@ -1125,7 +1169,7 @@ document.addEventListener('click',e=>{
   if(e.target.closest('[data-expcancel]')){expEdit=null;renderSpend();return;}
   const dl=e.target.closest('[data-expdel]');if(dl){const id=dl.dataset.expdel;
     if(expDelAsk!==id){expDelAsk=id;dl.textContent='Tap again to delete';return;}
-    EXP=EXP.filter(x=>x.id!==id);EXPDEL.push(id);expDelAsk=null;if(expEdit===id)expEdit=null;saveExp();renderSpend();toast('Deleted');return;}
+    EXP=EXP.filter(x=>x.id!==id);EXPDEL.push(id);EXPDT[id]=Date.now();expDelAsk=null;if(expEdit===id)expEdit=null;saveExp();renderSpend();toast('Deleted');return;}
   if(e.target.closest('[data-expshare]')){const t=expShareText();
     if(navigator.share)navigator.share({text:t}).catch(()=>{});
     else (navigator.clipboard?navigator.clipboard.writeText(t):Promise.reject()).then(()=>toast('Copied. Paste it into a message.'),()=>{$('#ex-imp').value=t;toast('Copy the text in the box');});
@@ -1164,8 +1208,8 @@ document.addEventListener('click',e=>{
   if(hi>=0)cur=hi;
   else if(tIdx>=0)cur=tIdx;
   else cur=japanDate()>'2026-11-01'?DAYS.length-1:0;
-  tick();setInterval(()=>{tick();refreshNextUp();},30000);
-  fetchRates();window.addEventListener('online',()=>fetchRates());document.addEventListener('visibilitychange',()=>{if(!document.hidden)fetchRates();});
+  tick();setInterval(()=>{tick();refreshNextUp();if(view==='spend'&&SYNC&&!document.hidden)syncExp();},30000);
+  fetchRates();window.addEventListener('online',()=>{fetchRates();syncExp();});document.addEventListener('visibilitychange',()=>{if(!document.hidden){fetchRates();if(view==='spend')syncExp();}});
   render(false);
 })();
 </script>
