@@ -224,6 +224,12 @@ details.facts[open] summary::before{content:"－ "}
 .explist .acts{grid-column:1/-1;display:flex;gap:8px}
 .explist .acts button{font:inherit;font-size:.75rem;padding:2px 8px;border-radius:6px;border:1px solid var(--line);background:none;color:var(--muted);cursor:pointer}
 .expimp textarea{min-height:5rem}
+.bars{display:grid;grid-template-columns:auto 1fr auto;gap:6px 10px;align-items:center;font-size:.85rem;margin-top:8px}
+.bars .lb{color:var(--ink);white-space:nowrap}
+.bars .tr{height:14px;display:flex;align-items:center}
+.bars .bar{height:14px;min-width:2px;background:var(--accent);border-radius:0 4px 4px 0}
+.bars .vl{font-variant-numeric:tabular-nums;color:var(--muted);text-align:right;white-space:nowrap}
+.bars .today{font-weight:700}
 @media (prefers-reduced-motion:no-preference){.chip{transition:background .15s,color .15s}}
 </style>
 </head><body>
@@ -1091,6 +1097,7 @@ function renderSpend(){
     <table class="qtab" style="margin-top:12px"><thead><tr><th>Paid with</th><th>Yen</th><th>Euro</th></tr></thead><tbody>${sumBy('pay').map(([k,v])=>`<tr><td>${esc(k)}</td><td>${yen(v)}</td><td>€${fmt(v/RATE.eur,0)}</td></tr>`).join('')}</tbody></table>
     <table class="qtab" style="margin-top:12px"><thead><tr><th>Type</th><th>Yen</th><th>Euro</th></tr></thead><tbody>${sumBy('cat').map(([k,v])=>`<tr><td>${esc(k)}</td><td>${yen(v)}</td><td>€${fmt(v/RATE.eur,0)}</td></tr>`).join('')}</tbody></table>`:''}
   </section>
+  ${EXP.length?spendCharts():''}
   <section class="sec"><h2>All expenses</h2>
     ${EXP.length?days.map(d=>{const xs=EXP.filter(x=>x.date===d).sort((a,b)=>b.ts-a.ts);return `<h3 style="font-size:.9rem;margin:14px 0 0">${dayLabel(d)} <span class="small">· ${yen(xs.reduce((a,x)=>a+x.yen,0))}</span></h3><ul class="explist">${xs.map(x=>`<li><span>${esc(x.what||x.cat)}</span><span class="am">${yen(x.yen)}</span><span class="meta">${esc(x.by)} · ${esc(x.pay||'Cash')} · ${esc(x.cat)}${x.cur!=='jpy'?` · paid ${ECUR[x.cur]}${fmt(x.amt,2)}`:''}</span><span></span><span class="acts"><button type="button" data-expedit="${x.id}">Edit</button><button type="button" data-expdel="${x.id}">${expDelAsk===x.id?'Tap again to delete':'Delete'}</button></span></li>`).join('')}</ul>`}).join(''):'<p class="small">Nothing yet. Add the first expense above.</p>'}
   </section>
@@ -1117,6 +1124,20 @@ function renderPaid(){
     <div><span class="small">Whole trip so far</span><b>${yen(pre+trip)}</b><span class="small">€${fmt((pre+trip)/RATE.eur,0)} · ₹${fmt((pre+trip)/RATE.inr,0)}</span></div></div>
   ${secs.map(sc=>{const xs=PAID.filter(x=>x.sec===sc);return `<section class="sec"><h2>${esc(sc)} <span class="small">· ${yen(sum(xs.filter(x=>x.st!=='due')))}</span></h2><ul class="explist">${xs.map(x=>`<li><span>${esc(x.what)}</span><span class="am">${amt(x)}</span><span class="meta">${esc(x.note)}${tag[x.st]||''}</span></li>`).join('')}</ul></section>`}).join('')}
   <p class="small">Euro and rupee prices are shown in yen at the rates set in Tools. Not included: the seniors' Niva Bupa insurance (no price in Gmail). When you pay the Kyoto hotel, add it under On the trip and it moves into the total.</p>`;
+}
+function barRows(rows,mark){
+  const max=Math.max(1,...rows.map(r=>r[1]));
+  return `<div class="bars" role="table">${rows.map(([k,v])=>`<span class="lb${k===mark?' today':''}" role="cell">${esc(k)}</span><span class="tr" role="cell" aria-hidden="true">${v?`<span class="bar" style="width:${(v/max*100).toFixed(1)}%"></span>`:''}</span><span class="vl" role="cell">${v?yen(v):'–'}</span>`).join('')}</div>`;
+}
+function spendCharts(){
+  const byCat={};EXP.forEach(x=>byCat[x.cat]=(byCat[x.cat]||0)+x.yen);
+  const cats=Object.entries(byCat).sort((a,b)=>b[1]-a[1]);
+  const today=japanDate(),last=[...EXP.map(x=>x.date),today<='2026-11-01'?today:'2026-11-01'].sort().pop();
+  const byDay={};EXP.forEach(x=>byDay[x.date]=(byDay[x.date]||0)+x.yen);
+  const days=[];for(let d=new Date('2026-10-17T12:00:00Z');d.toISOString().slice(0,10)<=last;d.setUTCDate(d.getUTCDate()+1))days.push(d.toISOString().slice(0,10));
+  const dl=d=>new Date(d+'T12:00:00Z').toLocaleDateString('en-GB',{weekday:'short',day:'numeric',timeZone:'UTC'});
+  return `<section class="sec"><h2>Spent on the trip by type</h2>${barRows(cats)}</section>
+  <section class="sec"><h2>Spent on the trip by day</h2>${barRows(days.map(d=>[dl(d),byDay[d]||0]),dl(today))}<p class="small">Only expenses added here, not bookings paid before the trip.</p></section>`;
 }
 const b64e=s=>btoa(Array.from(new TextEncoder().encode(s),c=>String.fromCharCode(c)).join('')).replace(/\+/g,'-').replace(/\//g,'_').replace(/=+$/,'');
 const b64d=s=>new TextDecoder().decode(Uint8Array.from(atob(s.replace(/-/g,'+').replace(/_/g,'/')),c=>c.charCodeAt(0)));
