@@ -166,6 +166,7 @@ details.facts[open] summary::before{content:"－ "}
 .tk .note{font-size:.84rem;color:var(--muted);margin:6px 0 0;line-height:1.45}
 .tkgrid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:14px}
 .tktile{display:flex;flex-direction:column;align-items:flex-start;gap:4px;text-align:left;font:inherit;color:var(--ink);background:var(--card);border:1px solid var(--line);border-radius:14px;padding:14px;cursor:pointer;min-height:104px}
+.tkused{margin-top:22px;border-top:1px solid var(--line);padding-top:6px}.tkused summary{cursor:pointer;padding:10px 0;font-weight:600;color:var(--muted)}
 .tktile .ic{font-size:1.6rem;line-height:1}
 .tktile b{font-size:.98rem}
 .tktile span{font-size:.8rem;color:var(--muted)}
@@ -990,18 +991,21 @@ function renderTickets(){
   const iso=k=>'2026-'+(k.startsWith('oct')?'10':'11')+'-'+String(+k.slice(3)).padStart(2,'0');
   const dlabel=k=>{const d=DAYS.find(x=>key(x)===k);return d?d.dow+' '+d.d+' '+(d.m===10?'Oct':'Nov'):k;};
   const L=TK.map((t,i)=>[t,i]);
+  /* a ticket is used once its day is over; a stay once its check-out day is over; insurance lasts the whole trip */
+  const endIso=t=>{if(t.sec==='ins')return '2026-11-01';const r=(t.rows||[]).find(x=>x[0]==='Dates'),m=r&&/→\s*\w+\s+(\d+)\s+(Oct|Nov)/.exec(r[1]);return m?'2026-'+(m[2]==='Oct'?'10':'11')+'-'+m[1].padStart(2,'0'):iso(t.day);};
+  const used=t=>endIso(t)<today;
   if(tkFocus){tkSec='day:'+tkFocus;tkFocus=null;}
   const top=`<div class="row" style="display:flex;gap:10px;align-items:center;justify-content:space-between">`;
   if(!tkSec){
     $('#main').innerHTML=head+top+`<p class="small" style="margin:0">Pick a section.</p><button class="btn" type="button" id="tklock">Lock</button></div><div class="tkgrid">`+
-    TK_SECS.map(([k,ic,name,sub])=>{const it=TK.filter(t=>t.sec===k);if(!it.length)return '';
+    TK_SECS.map(([k,ic,name,sub])=>{const it=TK.filter(t=>t.sec===k);if(!it.length)return '';const nu=it.filter(used).length,na=it.length-nu;
       const nx=it.map(t=>iso(t.day)).filter(x=>x>=today).sort()[0];
       const nk=nx?TK.find(t=>iso(t.day)===nx).day:null;
-      return `<button class="tktile" type="button" data-tksec="${k}"><span class="ic">${ic}</span><b>${esc(name)}</b><span>${it.length} item${it.length>1?'s':''}${sub?' · '+esc(sub):''}${nk?'<br>Next: '+dlabel(nk):''}</span></button>`;}).join('')+`</div>`+
+      return `<button class="tktile" type="button" data-tksec="${k}"><span class="ic">${ic}</span><b>${esc(name)}</b><span>${na?na+' to come':'All used'}${nu&&na?' · '+nu+' used':''}${sub?' · '+esc(sub):''}${nk?'<br>Next: '+dlabel(nk):''}</span></button>`;}).join('')+`</div>`+
     `<p class="small" style="margin-top:22px">Copied from Abhishek's booking emails and the tickets he shared. Hotel confirmation numbers aren't in that inbox, so they stay in the family PDF.</p>`;
     window.scrollTo(0,0);return;
   }
-  const card=(t,i)=>`<article class="tk${iso(t.day)<today?' past':''}">
+  const card=(t,i)=>`<article class="tk${used(t)?' past':''}">
       <h3>${t.icon||''} ${esc(t.title)}</h3><div class="who">${esc(t.time&&/\d/.test(t.time)?t.time+' · ':'')}${esc(t.who||'')}</div>
       <dl>${(t.rows||[]).map(([a,b])=>`<dt>${esc(a)}</dt><dd>${/ref|no\.|number|ID|code|E-tickets/i.test(a)&&!/\s·\s/.test(b)?`<button class="ref" type="button" data-copy="${esc(b.replace(/ \(.*\)$/,''))}" data-copymsg="Copied ${esc(b.replace(/ \(.*\)$/,''))}">${esc(b)}</button>`:esc(b)}</dd>`).join('')}</dl>
       <div class="acts">${t.rx?`<button class="btn" type="button" data-rx="${i}">Show at reception</button>`:''}${t.qr?`<button class="btn" type="button" data-qr="${i}">Show ${t.wide?'barcode':'QR code'}</button>`:''}${t.link?`<a class="btn" href="${esc(t.link)}" target="_blank" rel="noopener">${esc(t.linkLabel||'Open ticket')}</a>`:''}</div>
@@ -1009,10 +1013,12 @@ function renderTickets(){
   const isDay=tkSec.startsWith('day:'),dk=tkSec.slice(4),S=TK_SECS.find(x=>x[0]===tkSec);
   const items=L.filter(([t])=>isDay?t.day===dk:t.sec===tkSec);
   const grp=t=>isDay?(TK_SECS.find(x=>x[0]===t.sec)||['','',''])[2]:tkSec==='bp'?t.title.split(' · ').slice(2).join(' · ')+' · '+dlabel(t.day):dlabel(t.day)+(DAYS.find(x=>key(x)===t.day)?' · '+DAYS.find(x=>key(x)===t.day).title:'');
-  const groups=[...new Set(items.map(([t])=>grp(t)))];
+  const live=isDay?items:items.filter(([t])=>!used(t)),old=isDay?[]:items.filter(([t])=>used(t));
+  const list=its=>[...new Set(its.map(([t])=>grp(t)))].map(g=>`<h3 class="tkday">${esc(g)}</h3>`+its.filter(([t])=>grp(t)===g).map(([t,i])=>card(t,i)).join('')).join('');
   $('#main').innerHTML=head+top+`<button class="tkback" type="button" data-tksec="">‹ All sections</button><button class="btn" type="button" id="tklock">Lock</button></div>`+
     `<h2 style="margin:8px 0 2px">${isDay?'🎫 '+esc(dlabel(dk)):S[1]+' '+esc(S[2])}</h2><p class="small" style="margin:0">Tap a number to copy it. Tap a QR to show it full screen.</p>`+
-    groups.map(g=>`<h3 class="tkday">${esc(g)}</h3>`+items.filter(([t])=>grp(t)===g).map(([t,i])=>card(t,i)).join('')).join('')+
+    (live.length?list(live):'<p class="small" style="margin-top:14px">Everything in this section has been used.</p>')+
+    (old.length?`<details class="tkused"><summary>Used and past (${old.length})</summary>${list(old)}</details>`:'')+
     `<button class="tkback" type="button" data-tksec="" style="margin-top:12px">‹ All sections</button>`;
   window.scrollTo(0,0);
 }
